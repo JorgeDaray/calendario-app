@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario de Disponibilidad</title>
     
-    <!-- FullCalendar CSS -->
+    <!-- FullCalendar CSS y JS -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,12 +13,26 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Organizador de Salidas</h1>
-    
-    <!-- Aquí se renderizará el calendario -->
-    <div id="calendar"></div>
+    <div class="contenedor-principal">
+        <h1>Organizador de Salidas</h1>
+        
+        <!-- Calendario -->
+        <div id="calendar"></div>
+    </div>
 
-    <!-- Tu script de lógica -->
+    <!-- VENTANA MODAL (Oculta por defecto) -->
+    <div id="modalDisponibilidad" class="modal-oculto">
+        <div class="modal-contenido">
+            <h3 id="modalFechaTexto">Selecciona tu estado</h3>
+            <div class="modal-botones">
+                <button id="btnDisponible" class="btn verde">✅ Disponible</button>
+                <button id="btnProbable" class="btn amarillo">⚠️ Probable</button>
+                <button id="btnLimpiar" class="btn gris">🗑️ Limpiar Día</button>
+                <button id="btnCerrar" class="btn rojo">❌ Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

@@ -1,0 +1,28 @@
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO) ===
+Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
+Host: Vercel.
+
+-- ESTADO DE LA BASE DE DATOS (Supabase) --
+Tablas creadas:
+1. perfiles: id (UUID), nombre (TEXT)
+2. disponibilidad: id, fecha (DATE), usuario_id (UUID), estado (TEXT: disponible|probable|no_definido)
+3. eventos, asistencia_eventos (estructuradas, aún no integradas al frontend).
+
+-- ESTADO DE LOS ARCHIVOS --
+1. index.html: 
+   - Contenedor .contenedor-principal con div#calendar.
+   - Contiene la estructura de una Ventana Modal personalizada (div#modalDisponibilidad).
+2. style.css (Nuevo): 
+   - Diseño responsivo básico.
+   - @media queries para que el header de FullCalendar se apile en celulares.
+   - Estilos Flexbox para el Modal (centrado, fondo translúcido) y diseño de botones grandes para tacto en móviles.
+3. app.js: 
+   - FullCalendar headerToolbar actualizado con vistas: 'dayGridMonth,dayGridWeek,dayGridDay'.
+   - dateClick ahora abre el HTML Modal en lugar de un 'prompt' nativo.
+   - Logica de modal (guardarEstado, cerrarModal) con EventListeners.
+   - Sigue usando un UUID de usuario hardcodeado temporalmente.
+
+-- NOTAS --
+RLS (Row Level Security) está apagado temporalmente para pruebas.
+Aplicación completamente funcional en móviles, tablets y escritorio.
+===========================================================
