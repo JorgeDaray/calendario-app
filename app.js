@@ -1,18 +1,54 @@
-// Pega aquí las credenciales que copiaste de Supabase
+// Tus credenciales de Supabase
 const supabaseUrl = 'https://gunnbobibgwztjaeaafi.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1bm5ib2JpYmd3enRqYWVhYWZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUxODM5NTIsImV4cCI6MjEwMDc1OTk1Mn0.gSqChQVOShjT8oLILid_2VQreKjRvsc-cDbzGGzMQkY';
 const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-// Inicializar el calendario
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
     
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         
-        // Esta es la función que se ejecuta al hacer clic en un día
+        // --- NUEVO: FUNCIÓN PARA CARGAR DATOS AL INICIAR ---
+        events: async function(info, successCallback, failureCallback) {
+            // Hacemos la consulta a Supabase
+            const { data, error } = await supabase
+                .from('disponibilidad')
+                .select('*');
+
+            if (error) {
+                console.error("Error cargando la base de datos:", error);
+                failureCallback(error);
+                return;
+            }
+
+            // Transformamos los datos al formato que entiende FullCalendar
+            const eventosVisuales = [];
+            
+            data.forEach(registro => {
+                if (registro.estado === 'disponible') {
+                    eventosVisuales.push({
+                        title: 'Disponible',
+                        start: registro.fecha,
+                        color: '#28a745',
+                        allDay: true
+                    });
+                } else if (registro.estado === 'probable') {
+                    eventosVisuales.push({
+                        title: 'Probable',
+                        start: registro.fecha,
+                        color: '#ffc107',
+                        allDay: true
+                    });
+                }
+            });
+
+            // Le entregamos los eventos al calendario para que los dibuje
+            successCallback(eventosVisuales);
+        },
+
+        // --- TU FUNCIÓN DE CLIC ACTUALIZADA ---
         dateClick: async function(info) {
-            // 1. Preguntamos el estado (luego lo cambiaremos por un modal HTML más bonito)
             let opcion = prompt(
                 "¿Qué estado quieres para el " + info.dateStr + "?\n" +
                 "1 = Disponible (Verde)\n" +
@@ -21,28 +57,15 @@ document.addEventListener('DOMContentLoaded', function() {
             );
 
             let estado = null;
-            let colorEvento = '';
-            let titulo = '';
 
-            if (opcion === '1') {
-                estado = 'disponible';
-                colorEvento = '#28a745'; // Verde
-                titulo = 'Disponible';
-            } else if (opcion === '2') {
-                estado = 'probable';
-                colorEvento = '#ffc107'; // Amarillo
-                titulo = 'Probable';
-            } else if (opcion === '3') {
-                estado = 'no_definido';
-            } else {
-                return; // Si cancela o pone otra cosa, no hacemos nada
-            }
+            if (opcion === '1') estado = 'disponible';
+            else if (opcion === '2') estado = 'probable';
+            else if (opcion === '3') estado = 'no_definido';
+            else return; 
 
-            // 2. PEGA AQUÍ TU UUID DE PRUEBA
-            const miUsuarioId = 'PEGA_TU_UUID_AQUI'; 
+            // ¡IMPORTANTE! Reemplaza esto con el UUID de tu usuario en Supabase
+            const miUsuarioId = 'f8978a87-36ce-46ae-a14e-c4ece23390c8'; 
 
-            // 3. Guardamos en Supabase
-            // Usamos upsert para que si ya habías marcado ese día, simplemente lo actualice
             const { data, error } = await supabase
                 .from('disponibilidad')
                 .upsert({ 
@@ -57,19 +80,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error("Error en Supabase:", error);
                 alert("Hubo un error al guardar. Revisa la consola.");
             } else {
-                // 4. Pintamos el evento en el calendario visualmente
-                if (estado === 'no_definido') {
-                    alert("Día limpiado en la base de datos.");
-                    // Nota: para borrar el color visualmente al instante requiere más lógica,
-                    // por ahora con recargar la página se limpiará.
-                } else {
-                    calendar.addEvent({
-                        title: titulo,
-                        start: info.dateStr,
-                        color: colorEvento,
-                        allDay: true
-                    });
-                }
+                // Si todo sale bien, le decimos al calendario que recargue los datos
+                calendar.refetchEvents();
             }
         }
     });
