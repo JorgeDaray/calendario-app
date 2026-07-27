@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         loginContainer.classList.add('oculto');
         appContainer.classList.remove('oculto');
         
-        // --- NUEVO: Obtener y mostrar el nombre del usuario ---
         const { data: perfil } = await clienteSupabase.from('perfiles').select('nombre').eq('id', userId).single();
         if (perfil) {
             document.getElementById('nombreUsuarioHeader').innerText = perfil.nombre;
@@ -54,7 +53,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         iniciarSincronizacionEnVivo(); 
     }
 
-    // --- NUEVO: Eventos de la barra de herramientas ---
     document.getElementById('btnIrAFecha').addEventListener('click', () => {
         const fecha = document.getElementById('inputBuscarFecha').value;
         if (fecha && calendar) calendar.gotoDate(fecha);
@@ -66,18 +64,28 @@ document.addEventListener('DOMContentLoaded', async function() {
     function renderizarCalendario() {
         var calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
+            locale: 'es', // <-- NUEVO: Convierte toda la interfaz de FullCalendar a Español
             initialView: 'dayGridMonth',
-            // NUEVO: Se agregó 'multiMonthYear' para la vista anual
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'multiMonthYear,dayGridMonth,dayGridWeek,dayGridDay' },
             
+            // --- ACTUALIZADO: Filtro optimizado para cargar solo lo que se selecciona ---
             events: async function(info, successCallback, failureCallback) {
                 const verDisp = document.getElementById('chkVerDisponibles').checked;
                 const verEventos = document.getElementById('chkVerEventos').checked;
 
-                const [resDisp, resEventos] = await Promise.all([
-                    clienteSupabase.from('disponibilidad').select('*'),
-                    clienteSupabase.from('eventos').select('*')
-                ]);
+                let resDisp = { data: [], error: null };
+                let resEventos = { data: [], error: null };
+                const consultas = [];
+                
+                // Solo pedimos datos a la base si su checkbox está activado
+                if (verDisp) {
+                    consultas.push(clienteSupabase.from('disponibilidad').select('*').then(res => resDisp = res));
+                }
+                if (verEventos) {
+                    consultas.push(clienteSupabase.from('eventos').select('*').then(res => resEventos = res));
+                }
+
+                await Promise.all(consultas);
 
                 if (resDisp.error || resEventos.error) {
                     failureCallback(resDisp.error || resEventos.error); return;
@@ -85,16 +93,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 const eventosVisuales = [];
                 
-                // Filtro de Disponibilidad
-                if (verDisp) {
+                if (verDisp && resDisp.data.length > 0) {
                     resDisp.data.forEach(reg => {
                         if (reg.estado === 'disponible') eventosVisuales.push({ title: 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: 'background' });
                         else if (reg.estado === 'probable') eventosVisuales.push({ title: 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: 'background' });
                     });
                 }
 
-                // Filtro de Eventos Oficiales
-                if (verEventos) {
+                if (verEventos && resEventos.data.length > 0) {
                     resEventos.data.forEach(evt => {
                         eventosVisuales.push({
                             id: evt.id,

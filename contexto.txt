@@ -1,24 +1,18 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v10) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v11) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
 -- ESTADO DE LA BASE DE DATOS (Supabase) --
 Tablas Activas (Con REALTIME habilitado):
-1. perfiles: id (UUID), nombre (TEXT)
-2. disponibilidad: id, fecha, usuario_id, estado 
-3. eventos: id, titulo, descripcion, ubicacion, fecha_hora, creado_por
-4. asistencia_eventos: evento_id, usuario_id, estado
+1. perfiles, 2. disponibilidad, 3. eventos, 4. asistencia_eventos
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - [ACTUALIZADO] Se agregó `<span id="nombreUsuarioHeader">` para mostrar el nombre del usuario validado.
-   - [NUEVO] div.herramientas-calendario insertado con input[type="date"] para ir a fechas y checkboxes para aplicar filtros visuales.
+   - [ACTUALIZADO] Se incluyó el script `locales/es.global.min.js` en el `<head>` para importar el idioma Español nativo de FullCalendar.
 2. style.css: 
-   - [NUEVO] Clases Flexbox (.herramientas-calendario, .filtro-fechas, .filtros-vista) añadidas y adaptadas en `@media` para dispositivos móviles.
+   - (Sin cambios recientes) Mantiene UI limpia y responsive.
 3. app.js: 
-   - [ACTUALIZADO] `iniciarApp()` hace un `select('nombre')` a `perfiles` para inyectar el nombre en el DOM.
-   - [ACTUALIZADO] FullCalendar `headerToolbar` ahora incluye el botón nativo `multiMonthYear` para la vista anual.
-   - [ACTUALIZADO] `calendar.events()` lee el estado (checked/unchecked) de los checkboxes y omite renderizar las consultas de `disponibilidad` o `eventos` según corresponda.
-   - [NUEVO] Agregado EventListener al `btnIrAFecha` consumiendo la API de FullCalendar `calendar.gotoDate(fecha)`.
+   - [ACTUALIZADO] Se agregó `locale: 'es'` en las opciones del Calendar para traducir automáticamente vistas ("Mes", "Año", etc.), días y meses.
+   - [ACTUALIZADO] La función de filtro en `events:` fue optimizada. Ahora evalúa el estado de `chkVerDisponibles` y `chkVerEventos` ANTES de hacer la consulta a Supabase. Si un checkbox está desactivado, esa información no se descarga de la base de datos, mejorando el rendimiento y mostrando solo lo estrictamente seleccionado por el usuario.
 
 ===========================================================
