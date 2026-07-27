@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v3) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v4) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
@@ -10,15 +10,14 @@ Tablas:
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - Calendario y Ventana Modal personalizadas.
-   - [NUEVO] div.panel-mejores-dias con ul#listaMejoresDias añadido en el contenedor principal.
+   - [NUEVO] div.selector-usuario con select#usuarioSelect para elegir entre perfiles (ej. Jorge, Jacky) usando sus UUIDs como values.
+   - Calendario, Ventana Modal personalizadas y div.panel-mejores-dias.
 2. style.css: 
-   - Diseño responsivo básico y estilos Flexbox para el Modal.
-   - [NUEVO] Clases CSS añadidas (.panel-mejores-dias, .dia-top, .puntos-badge) para mostrar el Top 3 como tarjetas.
+   - [NUEVO] Estilos para .selector-usuario (diseño de tarjeta limpia y select amigable para móviles).
+   - Diseño responsivo básico, modal Flexbox, y tarjetas para mejores días.
 3. app.js: 
-   - Conexión a Supabase (sin RLS activo por ahora).
+   - [ACTUALIZADO] guardarEstado() ahora obtiene `miUsuarioId` dinámicamente leyendo el value de select#usuarioSelect en lugar de usar un string hardcodeado.
    - dateClick abre modal, el cual hace un UPSERT a la BD. 
-   - [NUEVO] Función asíncrona actualizarPanelMejoresDias(): hace un SELECT global a 'disponibilidad', calcula peso (Disponible=2, Probable=1), agrupa, ordena y pinta el Top 3. Se ejecuta al iniciar y tras cada 'refetchEvents()'.
-   - AÚN PENDIENTE: Cambiar el UUID quemado ('PEGA_TU_UUID_AQUI') por un sistema de selección de usuario.
+   - actualizarPanelMejoresDias() agrupa, ordena y pinta el Top 3. 
 
 ===========================================================

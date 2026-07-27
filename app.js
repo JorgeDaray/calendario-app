@@ -62,8 +62,8 @@ document.addEventListener('DOMContentLoaded', function() {
     async function guardarEstado(estado) {
         if (!fechaSeleccionada) return;
 
-        // ¡IMPORTANTE! Reemplaza esto con el UUID de tu usuario en Supabase
-        const miUsuarioId = 'f8978a87-36ce-46ae-a14e-c4ece23390c8'; 
+        // Leemos el UUID directamente del selector en el HTML
+        const miUsuarioId = document.getElementById('usuarioSelect').value;
 
         const { data, error } = await clienteSupabase
             .from('disponibilidad')
