@@ -102,7 +102,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                         extendedProps: { 
                             esOficial: true,
                             descripcion: evt.descripcion,
-                            ubicacion: evt.ubicacion // Pasamos la ubicación al calendario
+                            ubicacion: evt.ubicacion, // Pasamos la ubicación al calendario
+                            creado_por: evt.creado_por // <--- NUEVO
                         }
                     });
                 });
@@ -141,25 +142,60 @@ document.addEventListener('DOMContentLoaded', async function() {
                     document.getElementById('btnGoogleCalendar').href = gcalUrl;
 
                     // 3. Obtener lista de asistentes desde Supabase (Cruzando tablas)
+// 3. Obtener lista de asistentes desde Supabase
                     document.getElementById('listaAsistentes').innerHTML = '<li>Cargando asistentes...</li>';
                     
+                    // Ahora también pedimos el usuario_id para saber quién es quién
                     const { data: asistentes, error } = await clienteSupabase
                         .from('asistencia_eventos')
-                        .select('estado, perfiles(nombre)')
+                        .select('usuario_id, estado, perfiles(nombre)')
                         .eq('evento_id', eventoSeleccionadoId);
 
                     const listaHtml = document.getElementById('listaAsistentes');
                     listaHtml.innerHTML = '';
                     
+                    let otrosAsistentesConfirmados = 0; // Contador de protección
+
                     if (!error && asistentes.length > 0) {
                         asistentes.forEach(asistencia => {
                             let icono = asistencia.estado === 'asistire' ? '✅' : (asistencia.estado === 'en_espera' ? '⏳' : '❌');
                             const li = document.createElement('li');
                             li.innerText = `${icono} ${asistencia.perfiles.nombre}`;
                             listaHtml.appendChild(li);
+
+                            // Si alguien más confirmó asistencia, sumamos al contador
+                            if (asistencia.estado === 'asistire' && asistencia.usuario_id !== usuarioActualId) {
+                                otrosAsistentesConfirmados++;
+                            }
                         });
                     } else {
                         listaHtml.innerHTML = '<li style="color: #6c757d;">Nadie ha confirmado aún.</li>';
+                    }
+
+                    // 4. Lógica de permisos para el Creador
+                    const controlesCreador = document.getElementById('controlesCreador');
+                    const btnEliminar = document.getElementById('btnEliminarEvento');
+
+                    if (evt.extendedProps.creado_por === usuarioActualId) {
+                        controlesCreador.classList.remove('oculto');
+                        
+                        // Programamos el botón de eliminar
+                        btnEliminar.onclick = async () => {
+                            if (otrosAsistentesConfirmados > 0) {
+                                alert("⚠️ No puedes eliminar el evento porque ya hay personas confirmadas. Si no puedes asistir, simplemente cambia tu estado a 'No Asistiré' para que los demás mantengan el plan.");
+                                return;
+                            }
+                            
+                            if (confirm("¿Estás seguro de que quieres cancelar y borrar este evento?")) {
+                                // Borramos primero las asistencias amarradas y luego el evento
+                                await clienteSupabase.from('asistencia_eventos').delete().eq('evento_id', eventoSeleccionadoId);
+                                await clienteSupabase.from('eventos').delete().eq('id', eventoSeleccionadoId);
+                                cerrarModalRSVP();
+                                calendar.refetchEvents();
+                            }
+                        };
+                    } else {
+                        controlesCreador.classList.add('oculto'); // Ocultar si no eres el creador
                     }
 
                     // Mostrar modal

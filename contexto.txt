@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v8) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v9) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
@@ -6,19 +6,17 @@ Host: Vercel.
 Tablas Activas (Con REALTIME habilitado):
 1. perfiles: id (UUID), nombre (TEXT)
 2. disponibilidad: id, fecha, usuario_id, estado 
-3. eventos: id, titulo, descripcion, ubicacion (TEXT), fecha_hora (TIMESTAMP), creado_por
-4. asistencia_eventos: evento_id, usuario_id, estado (asistire|no_asistire|en_espera)
+3. eventos: id, titulo, descripcion, ubicacion, fecha_hora, creado_por
+4. asistencia_eventos: evento_id, usuario_id, estado
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - Login container, App container.
-   - #modalCrearEvento y #modalRSVP (estilo Google Calendar).
+   - [ACTUALIZADO] #modalRSVP ahora contiene un div#controlesCreador con el botón para eliminar el evento.
 2. style.css: 
-   - Diseño responsivo, modales Flexbox, panel top 3 y tarjetas de asistentes.
+   - Sin cambios recientes (Estilos de detalle de evento y listas mantenidos).
 3. app.js: 
-   - Autenticación con supabase.auth.
-   - Renderizado híbrido de FullCalendar (lee disponibilidad + eventos).
-   - Generación de links (action=TEMPLATE) para Google Calendar.
-   - [NUEVO] iniciarSincronizacionEnVivo() agregado usando clienteSupabase.channel(). Se suscribe a 'postgres_changes' en 'disponibilidad' y 'eventos' para disparar calendar.refetchEvents() y actualizarPanelMejoresDias() automáticamente sin recargar la página.
+   - [ACTUALIZADO] eventClick() ahora carga `creado_por` en los extendedProps.
+   - [NUEVO] Lógica de "Protección por Quórum": Si el `usuarioActualId` es igual a `creado_por`, se muestran los controles.
+   - [NUEVO] btnEliminar evalúa `otrosAsistentesConfirmados`. Si es > 0, bloquea el DELETE de Supabase (protegiendo eventos grupales). Si es 0, borra en cascada (primero asistencias, luego evento).
 
 ===========================================================
