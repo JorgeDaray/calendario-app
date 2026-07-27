@@ -38,45 +38,42 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.location.reload(); 
     });
 
-    function iniciarApp(userId) {
+    async function iniciarApp(userId) {
         usuarioActualId = userId;
         loginContainer.classList.add('oculto');
         appContainer.classList.remove('oculto');
+        
+        // --- NUEVO: Obtener y mostrar el nombre del usuario ---
+        const { data: perfil } = await clienteSupabase.from('perfiles').select('nombre').eq('id', userId).single();
+        if (perfil) {
+            document.getElementById('nombreUsuarioHeader').innerText = perfil.nombre;
+        }
+
         renderizarCalendario();
         actualizarPanelMejoresDias();
-        iniciarSincronizacionEnVivo();
+        iniciarSincronizacionEnVivo(); 
     }
 
-    // --- NUEVA FUNCIÓN: SINCRONIZACIÓN EN TIEMPO REAL ---
-    function iniciarSincronizacionEnVivo() {
-        clienteSupabase
-            .channel('cambios-publicos')
-            // Escuchar cambios en la disponibilidad
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'disponibilidad' }, (payload) => {
-                console.log('¡Alguien actualizó su disponibilidad!', payload);
-                if (calendar) calendar.refetchEvents();
-                actualizarPanelMejoresDias();
-            })
-            // Escuchar creación de nuevos eventos
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'eventos' }, (payload) => {
-                console.log('¡Nuevo evento oficial creado!', payload);
-                if (calendar) calendar.refetchEvents();
-            })
-            // Iniciar la conexión
-            .subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
-                    console.log('🟢 Conectado a Supabase Realtime');
-                }
-            });
-    }
+    // --- NUEVO: Eventos de la barra de herramientas ---
+    document.getElementById('btnIrAFecha').addEventListener('click', () => {
+        const fecha = document.getElementById('inputBuscarFecha').value;
+        if (fecha && calendar) calendar.gotoDate(fecha);
+    });
+
+    document.getElementById('chkVerDisponibles').addEventListener('change', () => calendar.refetchEvents());
+    document.getElementById('chkVerEventos').addEventListener('change', () => calendar.refetchEvents());
 
     function renderizarCalendario() {
         var calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
-            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,dayGridWeek,dayGridDay' },
+            // NUEVO: Se agregó 'multiMonthYear' para la vista anual
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'multiMonthYear,dayGridMonth,dayGridWeek,dayGridDay' },
             
             events: async function(info, successCallback, failureCallback) {
+                const verDisp = document.getElementById('chkVerDisponibles').checked;
+                const verEventos = document.getElementById('chkVerEventos').checked;
+
                 const [resDisp, resEventos] = await Promise.all([
                     clienteSupabase.from('disponibilidad').select('*'),
                     clienteSupabase.from('eventos').select('*')
@@ -88,25 +85,31 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                 const eventosVisuales = [];
                 
-                resDisp.data.forEach(reg => {
-                    if (reg.estado === 'disponible') eventosVisuales.push({ title: 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: 'background' });
-                    else if (reg.estado === 'probable') eventosVisuales.push({ title: 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: 'background' });
-                });
-
-                resEventos.data.forEach(evt => {
-                    eventosVisuales.push({
-                        id: evt.id,
-                        title: '🎉 ' + evt.titulo,
-                        start: evt.fecha_hora,
-                        color: '#6f42c1', 
-                        extendedProps: { 
-                            esOficial: true,
-                            descripcion: evt.descripcion,
-                            ubicacion: evt.ubicacion, // Pasamos la ubicación al calendario
-                            creado_por: evt.creado_por // <--- NUEVO
-                        }
+                // Filtro de Disponibilidad
+                if (verDisp) {
+                    resDisp.data.forEach(reg => {
+                        if (reg.estado === 'disponible') eventosVisuales.push({ title: 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: 'background' });
+                        else if (reg.estado === 'probable') eventosVisuales.push({ title: 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: 'background' });
                     });
-                });
+                }
+
+                // Filtro de Eventos Oficiales
+                if (verEventos) {
+                    resEventos.data.forEach(evt => {
+                        eventosVisuales.push({
+                            id: evt.id,
+                            title: '🎉 ' + evt.titulo,
+                            start: evt.fecha_hora,
+                            color: '#6f42c1', 
+                            extendedProps: { 
+                                esOficial: true,
+                                descripcion: evt.descripcion,
+                                ubicacion: evt.ubicacion,
+                                creado_por: evt.creado_por
+                            }
+                        });
+                    });
+                }
 
                 successCallback(eventosVisuales);
             },
@@ -117,35 +120,29 @@ document.addEventListener('DOMContentLoaded', async function() {
                 document.getElementById('modalDisponibilidad').className = 'modal-visible';
             },
 
-            // AL HACER CLIC EN UN EVENTO YA CREADO
             eventClick: async function(info) {
                 if (info.event.extendedProps.esOficial) {
                     const evt = info.event;
                     eventoSeleccionadoId = evt.id;
                     
-                    // 1. Llenar textos del modal
                     document.getElementById('modalRSVPTitulo').innerText = evt.title;
                     document.getElementById('rsvpFechaHora').innerText = evt.start.toLocaleString();
                     document.getElementById('rsvpUbicacion').innerText = evt.extendedProps.ubicacion || 'Sin ubicación definida';
                     document.getElementById('rsvpDescripcion').innerText = evt.extendedProps.descripcion || 'Sin descripción';
 
-                    // 2. Generar Link de Google Calendar
                     const formatLocal = (d) => {
                         const pad = (n) => n < 10 ? '0'+n : n;
                         return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
                     };
                     const fechaInicio = evt.start;
-                    const fechaFin = new Date(fechaInicio.getTime() + 2 * 60 * 60 * 1000); // Suma 2 horas por defecto
+                    const fechaFin = new Date(fechaInicio.getTime() + 2 * 60 * 60 * 1000); 
                     const tituloGcal = evt.title.replace('🎉 ', '');
                     
                     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(tituloGcal)}&dates=${formatLocal(fechaInicio)}/${formatLocal(fechaFin)}&details=${encodeURIComponent(evt.extendedProps.descripcion || '')}&location=${encodeURIComponent(evt.extendedProps.ubicacion || '')}`;
                     document.getElementById('btnGoogleCalendar').href = gcalUrl;
 
-                    // 3. Obtener lista de asistentes desde Supabase (Cruzando tablas)
-// 3. Obtener lista de asistentes desde Supabase
                     document.getElementById('listaAsistentes').innerHTML = '<li>Cargando asistentes...</li>';
                     
-                    // Ahora también pedimos el usuario_id para saber quién es quién
                     const { data: asistentes, error } = await clienteSupabase
                         .from('asistencia_eventos')
                         .select('usuario_id, estado, perfiles(nombre)')
@@ -154,7 +151,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const listaHtml = document.getElementById('listaAsistentes');
                     listaHtml.innerHTML = '';
                     
-                    let otrosAsistentesConfirmados = 0; // Contador de protección
+                    let otrosAsistentesConfirmados = 0; 
 
                     if (!error && asistentes.length > 0) {
                         asistentes.forEach(asistencia => {
@@ -163,7 +160,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                             li.innerText = `${icono} ${asistencia.perfiles.nombre}`;
                             listaHtml.appendChild(li);
 
-                            // Si alguien más confirmó asistencia, sumamos al contador
                             if (asistencia.estado === 'asistire' && asistencia.usuario_id !== usuarioActualId) {
                                 otrosAsistentesConfirmados++;
                             }
@@ -172,14 +168,12 @@ document.addEventListener('DOMContentLoaded', async function() {
                         listaHtml.innerHTML = '<li style="color: #6c757d;">Nadie ha confirmado aún.</li>';
                     }
 
-                    // 4. Lógica de permisos para el Creador
                     const controlesCreador = document.getElementById('controlesCreador');
                     const btnEliminar = document.getElementById('btnEliminarEvento');
 
                     if (evt.extendedProps.creado_por === usuarioActualId) {
                         controlesCreador.classList.remove('oculto');
                         
-                        // Programamos el botón de eliminar
                         btnEliminar.onclick = async () => {
                             if (otrosAsistentesConfirmados > 0) {
                                 alert("⚠️ No puedes eliminar el evento porque ya hay personas confirmadas. Si no puedes asistir, simplemente cambia tu estado a 'No Asistiré' para que los demás mantengan el plan.");
@@ -187,7 +181,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                             }
                             
                             if (confirm("¿Estás seguro de que quieres cancelar y borrar este evento?")) {
-                                // Borramos primero las asistencias amarradas y luego el evento
                                 await clienteSupabase.from('asistencia_eventos').delete().eq('evento_id', eventoSeleccionadoId);
                                 await clienteSupabase.from('eventos').delete().eq('id', eventoSeleccionadoId);
                                 cerrarModalRSVP();
@@ -195,10 +188,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                             }
                         };
                     } else {
-                        controlesCreador.classList.add('oculto'); // Ocultar si no eres el creador
+                        controlesCreador.classList.add('oculto'); 
                     }
 
-                    // Mostrar modal
                     document.getElementById('modalRSVP').className = 'modal-visible';
                 }
             }
@@ -220,7 +212,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         cerrarModalDisp(); 
     }
 
-    // AL GUARDAR EVENTO NUEVO
     async function guardarEvento() {
         const titulo = document.getElementById('inputTituloEvento').value;
         const hora = document.getElementById('inputHoraEvento').value;
@@ -233,7 +224,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         const { error } = await clienteSupabase.from('eventos').insert({
             titulo: titulo,
             descripcion: desc,
-            ubicacion: ubicacion, // Se envía a la base de datos
+            ubicacion: ubicacion, 
             fecha_hora: fechaHoraTimestamp,
             creado_por: usuarioActualId
         });
@@ -254,7 +245,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         if(error) alert("Error guardando tu asistencia.");
         
-        // Recargar modal para ver tu propio nombre en la lista al instante
         cerrarModalRSVP();
         calendar.refetchEvents(); 
     }
@@ -299,6 +289,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                 document.getElementById('modalCrearEvento').className = 'modal-visible';
             });
         });
+    }
+
+    function iniciarSincronizacionEnVivo() {
+        clienteSupabase
+            .channel('cambios-publicos')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'disponibilidad' }, (payload) => {
+                if (calendar) calendar.refetchEvents();
+                actualizarPanelMejoresDias();
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'eventos' }, (payload) => {
+                if (calendar) calendar.refetchEvents();
+            })
+            .subscribe();
     }
 
     document.getElementById('btnDisponible').addEventListener('click', () => guardarEstado('disponible'));

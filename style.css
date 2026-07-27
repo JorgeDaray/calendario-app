@@ -233,3 +233,64 @@ h1 {
 .btn.blanco-borde:hover {
     background-color: #f8f9fa;
 }
+
+/* --- BARRA DE HERRAMIENTAS (FILTROS Y BÚSQUEDA) --- */
+.herramientas-calendario {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+    flex-wrap: wrap; /* Para que baje en celulares */
+    gap: 15px;
+}
+
+.filtro-fechas {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.input-herramienta {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    font-size: 14px;
+}
+
+.btn.gris-claro {
+    background-color: #6c757d;
+    color: white;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.filtros-vista {
+    display: flex;
+    gap: 15px;
+}
+
+.checkbox-filtro {
+    font-size: 14px;
+    color: #495057;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Ajustes para celulares de la barra de herramientas */
+@media (max-width: 768px) {
+    .herramientas-calendario {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .filtros-vista {
+        flex-direction: column;
+        gap: 10px;
+    }
+}

@@ -27,8 +27,25 @@
     <!-- CONTENEDOR PRINCIPAL (Oculto por defecto hasta que inicias sesión) -->
     <div id="app-container" class="contenedor-principal oculto">
         <div class="cabecera-app">
-            <h1>Organizador de Salidas</h1>
+            <!-- El nombre se inyectará dinámicamente aquí -->
+            <h1>👋 Hola, <span id="nombreUsuarioHeader">...</span></h1>
             <button id="btnLogout" class="btn rojo-claro">Cerrar Sesión</button>
+        </div>
+
+        <!-- NUEVO: BARRA DE HERRAMIENTAS (Filtros y Búsqueda) -->
+        <div class="herramientas-calendario">
+            <div class="filtro-fechas">
+                <input type="date" id="inputBuscarFecha" class="input-herramienta">
+                <button id="btnIrAFecha" class="btn gris-claro">Ir a Fecha</button>
+            </div>
+            <div class="filtros-vista">
+                <label class="checkbox-filtro">
+                    <input type="checkbox" id="chkVerDisponibles" checked> 🟢 Mostrar Disponibilidad
+                </label>
+                <label class="checkbox-filtro">
+                    <input type="checkbox" id="chkVerEventos" checked> 🎉 Mostrar Eventos
+                </label>
+            </div>
         </div>
         
         <!-- Calendario -->

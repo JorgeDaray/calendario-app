@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v9) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v10) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
@@ -11,12 +11,14 @@ Tablas Activas (Con REALTIME habilitado):
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - [ACTUALIZADO] #modalRSVP ahora contiene un div#controlesCreador con el botón para eliminar el evento.
+   - [ACTUALIZADO] Se agregó `<span id="nombreUsuarioHeader">` para mostrar el nombre del usuario validado.
+   - [NUEVO] div.herramientas-calendario insertado con input[type="date"] para ir a fechas y checkboxes para aplicar filtros visuales.
 2. style.css: 
-   - Sin cambios recientes (Estilos de detalle de evento y listas mantenidos).
+   - [NUEVO] Clases Flexbox (.herramientas-calendario, .filtro-fechas, .filtros-vista) añadidas y adaptadas en `@media` para dispositivos móviles.
 3. app.js: 
-   - [ACTUALIZADO] eventClick() ahora carga `creado_por` en los extendedProps.
-   - [NUEVO] Lógica de "Protección por Quórum": Si el `usuarioActualId` es igual a `creado_por`, se muestran los controles.
-   - [NUEVO] btnEliminar evalúa `otrosAsistentesConfirmados`. Si es > 0, bloquea el DELETE de Supabase (protegiendo eventos grupales). Si es 0, borra en cascada (primero asistencias, luego evento).
+   - [ACTUALIZADO] `iniciarApp()` hace un `select('nombre')` a `perfiles` para inyectar el nombre en el DOM.
+   - [ACTUALIZADO] FullCalendar `headerToolbar` ahora incluye el botón nativo `multiMonthYear` para la vista anual.
+   - [ACTUALIZADO] `calendar.events()` lee el estado (checked/unchecked) de los checkboxes y omite renderizar las consultas de `disponibilidad` o `eventos` según corresponda.
+   - [NUEVO] Agregado EventListener al `btnIrAFecha` consumiendo la API de FullCalendar `calendar.gotoDate(fecha)`.
 
 ===========================================================
