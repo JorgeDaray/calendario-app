@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v6) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v7) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
@@ -6,21 +6,20 @@ Host: Vercel.
 Tablas Activas:
 1. perfiles: id (UUID), nombre (TEXT)
 2. disponibilidad: id, fecha, usuario_id, estado 
-3. eventos: id, titulo, descripcion, fecha_hora (TIMESTAMP), creado_por
+3. eventos: id, titulo, descripcion, ubicacion (TEXT) [NUEVO], fecha_hora (TIMESTAMP), creado_por
 4. asistencia_eventos: evento_id, usuario_id, estado (asistire|no_asistire|en_espera)
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - Login container, App container (oculto por defecto).
-   - [NUEVO] #modalCrearEvento (inputs de titulo, hora y descripción).
-   - [NUEVO] #modalRSVP (botones para confirmar asistencia).
+   - Login container, App container.
+   - [ACTUALIZADO] #modalCrearEvento ahora incluye input de ubicación.
+   - [ACTUALIZADO] #modalRSVP rediseñado. Muestra ubicación, fecha, descripción, botón de exportar a GCal y la lista <ul> dinámica de asistentes.
 2. style.css: 
-   - Tarjetas, responsive, modales y panel top 3.
-   - [NUEVO] Clases .btn-armar y .btn.morado para el flujo de eventos.
+   - Tarjetas, responsive, modales, panel top 3 y estilos de eventos (.btn-armar).
+   - [NUEVO] Clases .detalles-evento, .lista-asistentes y .btn.blanco-borde para formatear el modal de RSVP estilo GCal.
 3. app.js: 
-   - [ACTUALIZADO] renderizarCalendario() ahora hace Promise.all para extraer de 'disponibilidad' y 'eventos'.
-   - La disponibilidad se pinta como `display: 'background'`, los eventos como globos morados interactivos.
-   - [NUEVO] eventClick() evalúa si es un evento oficial y despliega #modalRSVP para hacer un UPSERT a 'asistencia_eventos'.
-   - [NUEVO] actualizarPanelMejoresDias() inyecta botones .btn-armar que abren #modalCrearEvento para hacer INSERT en 'eventos'.
+   - [ACTUALIZADO] eventClick() ahora cruza tablas (asistencia_eventos JOIN perfiles) con `.select('estado, perfiles(nombre)')` para listar los nombres de los asistentes.
+   - [NUEVO] Lógica en eventClick() para formatear las fechas a formato local (sin guiones/puntos) y construir un enlace 'action=TEMPLATE' directo a Google Calendar.
+   - guardarEvento() ahora recopila e inserta la 'ubicacion' en la DB.
 
 ===========================================================

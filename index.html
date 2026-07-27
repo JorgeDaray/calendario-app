@@ -56,7 +56,7 @@
         </div>
     </div>
 
-    <!-- NUEVO: VENTANA MODAL PARA CREAR EVENTO OFICIAL -->
+   <!-- NUEVO: VENTANA MODAL PARA CREAR EVENTO OFICIAL -->
     <div id="modalCrearEvento" class="modal-oculto">
         <div class="modal-contenido">
             <h3>🎉 Crear Reunión Oficial</h3>
@@ -64,7 +64,8 @@
             
             <input type="text" id="inputTituloEvento" placeholder="Título (ej. Salida a cenar)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
             <input type="time" id="inputHoraEvento" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
-            <textarea id="inputDescEvento" placeholder="Detalles / Lugar..." style="width: 90%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ced4da;"></textarea>
+            <input type="text" id="inputUbicacionEvento" placeholder="Ubicación (ej. Punto Sao Paulo)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
+            <textarea id="inputDescEvento" placeholder="Detalles extra..." style="width: 90%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ced4da;"></textarea>
             
             <div class="modal-botones">
                 <button id="btnGuardarEvento" class="btn morado">Guardar Evento</button>
@@ -73,16 +74,36 @@
         </div>
     </div>
 
-    <!-- NUEVO: VENTANA MODAL PARA RSVP (ASISTENCIA) -->
+    <!-- NUEVO: VENTANA MODAL PARA RSVP (ASISTENCIA Y DETALLES) -->
     <div id="modalRSVP" class="modal-oculto">
         <div class="modal-contenido">
-            <h3 id="modalRSVPTitulo">Título del Evento</h3>
-            <p>¿Confirmas tu asistencia?</p>
+            <h3 id="modalRSVPTitulo" style="margin-bottom: 5px;">Título del Evento</h3>
+            
+            <!-- Detalles estilo Google Calendar -->
+            <div id="detallesEventoRSVP" class="detalles-evento">
+                <p>📍 <span id="rsvpUbicacion">Ubicación</span></p>
+                <p>🕒 <span id="rsvpFechaHora">Fecha y Hora</span></p>
+                <p>📝 <span id="rsvpDescripcion">Descripción</span></p>
+            </div>
+
+            <a id="btnGoogleCalendar" href="#" target="_blank" class="btn blanco-borde" style="text-decoration: none; display: block; margin-bottom: 15px; color: #333;">📅 Agregar a Google Calendar</a>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+            <!-- Lista dinámica de asistentes -->
+            <h4 style="margin: 0 0 10px 0; text-align: left;">Asistentes:</h4>
+            <ul id="listaAsistentes" class="lista-asistentes">
+                <!-- Aquí se inyectarán los nombres con JS -->
+            </ul>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+
+            <p style="font-weight: bold;">Tu estado:</p>
             <div class="modal-botones">
                 <button id="btnRSVPAsistire" class="btn verde">👍 Asistiré</button>
                 <button id="btnRSVPEnEspera" class="btn amarillo">⏳ En Espera</button>
                 <button id="btnRSVPNoAsistire" class="btn rojo">👎 No Asistiré</button>
-                <button id="btnCerrarRSVP" class="btn gris">Cerrar</button>
+                <button id="btnCerrarRSVP" class="btn gris">Cerrar Detalles</button>
             </div>
         </div>
     </div>

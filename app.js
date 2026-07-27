@@ -5,7 +5,7 @@ const clienteSupabase = supabase.createClient(supabaseUrl, supabaseKey);
 let usuarioActualId = null;
 let calendar; 
 let fechaSeleccionada = null; 
-let eventoSeleccionadoId = null; // Para guardar a qué evento le dimos clic
+let eventoSeleccionadoId = null; 
 
 document.addEventListener('DOMContentLoaded', async function() {
     const loginContainer = document.getElementById('login-container');
@@ -14,11 +14,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     const btnLogout = document.getElementById('btnLogout');
     const loginError = document.getElementById('loginError');
 
-    // 1. REVISAR SESIÓN
     const { data: { session } } = await clienteSupabase.auth.getSession();
     if (session) iniciarApp(session.user.id);
 
-    // 2. LOGIN Y LOGOUT
     btnLogin.addEventListener('click', async () => {
         const email = document.getElementById('emailInput').value;
         const password = document.getElementById('passwordInput').value;
@@ -40,7 +38,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         window.location.reload(); 
     });
 
-    // 3. INICIO DE APP Y CALENDARIO
     function iniciarApp(userId) {
         usuarioActualId = userId;
         loginContainer.classList.add('oculto');
@@ -55,7 +52,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             initialView: 'dayGridMonth',
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,dayGridWeek,dayGridDay' },
             
-            // AHORA LEEMOS DE 2 TABLAS (Disponibilidad y Eventos)
             events: async function(info, successCallback, failureCallback) {
                 const [resDisp, resEventos] = await Promise.all([
                     clienteSupabase.from('disponibilidad').select('*'),
@@ -63,44 +59,86 @@ document.addEventListener('DOMContentLoaded', async function() {
                 ]);
 
                 if (resDisp.error || resEventos.error) {
-                    console.error("Error cargando datos");
                     failureCallback(resDisp.error || resEventos.error); return;
                 }
 
                 const eventosVisuales = [];
                 
-                // Pintar disponibilidad (Fondo verde/amarillo)
                 resDisp.data.forEach(reg => {
                     if (reg.estado === 'disponible') eventosVisuales.push({ title: 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: 'background' });
                     else if (reg.estado === 'probable') eventosVisuales.push({ title: 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: 'background' });
                 });
 
-                // Pintar Eventos Oficiales (Globos morados)
                 resEventos.data.forEach(evt => {
                     eventosVisuales.push({
-                        id: evt.id, // ID real de la base de datos
+                        id: evt.id,
                         title: '🎉 ' + evt.titulo,
                         start: evt.fecha_hora,
                         color: '#6f42c1', 
-                        extendedProps: { esOficial: true } // Marca para saber que es un evento
+                        extendedProps: { 
+                            esOficial: true,
+                            descripcion: evt.descripcion,
+                            ubicacion: evt.ubicacion // Pasamos la ubicación al calendario
+                        }
                     });
                 });
 
                 successCallback(eventosVisuales);
             },
             
-            // CLIC EN UN DÍA VACÍO (Disponibilidad)
             dateClick: function(info) {
                 fechaSeleccionada = info.dateStr;
                 document.getElementById('modalFechaTexto').innerText = "Estado para: " + info.dateStr;
                 document.getElementById('modalDisponibilidad').className = 'modal-visible';
             },
 
-            // CLIC EN UN EVENTO YA CREADO (RSVP)
-            eventClick: function(info) {
+            // AL HACER CLIC EN UN EVENTO YA CREADO
+            eventClick: async function(info) {
                 if (info.event.extendedProps.esOficial) {
-                    eventoSeleccionadoId = info.event.id;
-                    document.getElementById('modalRSVPTitulo').innerText = info.event.title;
+                    const evt = info.event;
+                    eventoSeleccionadoId = evt.id;
+                    
+                    // 1. Llenar textos del modal
+                    document.getElementById('modalRSVPTitulo').innerText = evt.title;
+                    document.getElementById('rsvpFechaHora').innerText = evt.start.toLocaleString();
+                    document.getElementById('rsvpUbicacion').innerText = evt.extendedProps.ubicacion || 'Sin ubicación definida';
+                    document.getElementById('rsvpDescripcion').innerText = evt.extendedProps.descripcion || 'Sin descripción';
+
+                    // 2. Generar Link de Google Calendar
+                    const formatLocal = (d) => {
+                        const pad = (n) => n < 10 ? '0'+n : n;
+                        return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+                    };
+                    const fechaInicio = evt.start;
+                    const fechaFin = new Date(fechaInicio.getTime() + 2 * 60 * 60 * 1000); // Suma 2 horas por defecto
+                    const tituloGcal = evt.title.replace('🎉 ', '');
+                    
+                    const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(tituloGcal)}&dates=${formatLocal(fechaInicio)}/${formatLocal(fechaFin)}&details=${encodeURIComponent(evt.extendedProps.descripcion || '')}&location=${encodeURIComponent(evt.extendedProps.ubicacion || '')}`;
+                    document.getElementById('btnGoogleCalendar').href = gcalUrl;
+
+                    // 3. Obtener lista de asistentes desde Supabase (Cruzando tablas)
+                    document.getElementById('listaAsistentes').innerHTML = '<li>Cargando asistentes...</li>';
+                    
+                    const { data: asistentes, error } = await clienteSupabase
+                        .from('asistencia_eventos')
+                        .select('estado, perfiles(nombre)')
+                        .eq('evento_id', eventoSeleccionadoId);
+
+                    const listaHtml = document.getElementById('listaAsistentes');
+                    listaHtml.innerHTML = '';
+                    
+                    if (!error && asistentes.length > 0) {
+                        asistentes.forEach(asistencia => {
+                            let icono = asistencia.estado === 'asistire' ? '✅' : (asistencia.estado === 'en_espera' ? '⏳' : '❌');
+                            const li = document.createElement('li');
+                            li.innerText = `${icono} ${asistencia.perfiles.nombre}`;
+                            listaHtml.appendChild(li);
+                        });
+                    } else {
+                        listaHtml.innerHTML = '<li style="color: #6c757d;">Nadie ha confirmado aún.</li>';
+                    }
+
+                    // Mostrar modal
                     document.getElementById('modalRSVP').className = 'modal-visible';
                 }
             }
@@ -108,14 +146,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         calendar.render();
     }
 
-    // --- FUNCIONES DE MODALES Y BASE DE DATOS ---
-    
-    // Cerrar modales
     const cerrarModalDisp = () => document.getElementById('modalDisponibilidad').className = 'modal-oculto';
     const cerrarModalCrear = () => document.getElementById('modalCrearEvento').className = 'modal-oculto';
     const cerrarModalRSVP = () => document.getElementById('modalRSVP').className = 'modal-oculto';
 
-    // Guardar Disponibilidad (Igual que antes)
     async function guardarEstado(estado) {
         if (!fechaSeleccionada || !usuarioActualId) return;
         const { error } = await clienteSupabase.from('disponibilidad').upsert(
@@ -126,20 +160,20 @@ document.addEventListener('DOMContentLoaded', async function() {
         cerrarModalDisp(); 
     }
 
-    // Guardar Evento Oficial
+    // AL GUARDAR EVENTO NUEVO
     async function guardarEvento() {
         const titulo = document.getElementById('inputTituloEvento').value;
         const hora = document.getElementById('inputHoraEvento').value;
+        const ubicacion = document.getElementById('inputUbicacionEvento').value;
         const desc = document.getElementById('inputDescEvento').value;
 
         if(!titulo || !hora) return alert("Falta título u hora");
-
-        // Unimos la fecha seleccionada con la hora para el campo TIMESTAMP
         const fechaHoraTimestamp = `${fechaSeleccionada}T${hora}:00`;
 
         const { error } = await clienteSupabase.from('eventos').insert({
             titulo: titulo,
             descripcion: desc,
+            ubicacion: ubicacion, // Se envía a la base de datos
             fecha_hora: fechaHoraTimestamp,
             creado_por: usuarioActualId
         });
@@ -150,7 +184,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         cerrarModalCrear();
     }
 
-    // Guardar Asistencia (RSVP)
     async function guardarRSVP(estado) {
         if(!eventoSeleccionadoId || !usuarioActualId) return;
         
@@ -160,12 +193,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         );
 
         if(error) alert("Error guardando tu asistencia.");
-        else alert("¡Asistencia guardada!");
         
+        // Recargar modal para ver tu propio nombre en la lista al instante
         cerrarModalRSVP();
+        calendar.refetchEvents(); 
     }
 
-    // Actualizar Panel de Mejores Días (Ahora inyecta botones)
     async function actualizarPanelMejoresDias() {
         const { data, error } = await clienteSupabase.from('disponibilidad').select('*');
         if (error) return;
@@ -192,7 +225,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         top3.forEach((dia, index) => {
             const li = document.createElement('li');
             li.className = 'dia-top';
-            // Inyectamos el botón con un dataset para saber qué fecha crear
             li.innerHTML = `
                 <span>#${index + 1} - ${dia.fecha} <span class="puntos-badge">${dia.puntos} pts</span></span> 
                 <button class="btn-armar" data-fecha="${dia.fecha}">Crear Evento</button>
@@ -200,7 +232,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             listaHtml.appendChild(li);
         });
 
-        // Escuchar clics en los nuevos botones "Crear Evento"
         document.querySelectorAll('.btn-armar').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 fechaSeleccionada = e.target.getAttribute('data-fecha');
@@ -210,7 +241,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // CONECTAR BOTONES DE MODALES
     document.getElementById('btnDisponible').addEventListener('click', () => guardarEstado('disponible'));
     document.getElementById('btnProbable').addEventListener('click', () => guardarEstado('probable'));
     document.getElementById('btnLimpiar').addEventListener('click', () => guardarEstado('no_definido'));

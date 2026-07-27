@@ -190,3 +190,46 @@ h1 {
 
 .btn-armar:hover { background-color: #59359a; }
 .btn.morado { background-color: #6f42c1; color: white; }
+
+/* --- ESTILOS DE DETALLES DE EVENTO Y ASISTENTES --- */
+.detalles-evento {
+    text-align: left;
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #495057;
+}
+
+.detalles-evento p {
+    margin: 5px 0;
+}
+
+.lista-asistentes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.lista-asistentes li {
+    padding: 5px 0;
+    border-bottom: 1px solid #f1f3f5;
+    font-size: 14px;
+}
+
+.lista-asistentes li:last-child {
+    border-bottom: none;
+}
+
+.btn.blanco-borde {
+    background-color: white;
+    border: 1px solid #ced4da;
+    color: #495057;
+}
+.btn.blanco-borde:hover {
+    background-color: #f8f9fa;
+}
