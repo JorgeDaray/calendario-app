@@ -1,28 +1,24 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v3) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
 -- ESTADO DE LA BASE DE DATOS (Supabase) --
-Tablas creadas:
+Tablas:
 1. perfiles: id (UUID), nombre (TEXT)
 2. disponibilidad: id, fecha (DATE), usuario_id (UUID), estado (TEXT: disponible|probable|no_definido)
-3. eventos, asistencia_eventos (estructuradas, aún no integradas al frontend).
+3. eventos, asistencia_eventos (estructuradas, aún sin interfaz).
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - Contenedor .contenedor-principal con div#calendar.
-   - Contiene la estructura de una Ventana Modal personalizada (div#modalDisponibilidad).
-2. style.css (Nuevo): 
-   - Diseño responsivo básico.
-   - @media queries para que el header de FullCalendar se apile en celulares.
-   - Estilos Flexbox para el Modal (centrado, fondo translúcido) y diseño de botones grandes para tacto en móviles.
+   - Calendario y Ventana Modal personalizadas.
+   - [NUEVO] div.panel-mejores-dias con ul#listaMejoresDias añadido en el contenedor principal.
+2. style.css: 
+   - Diseño responsivo básico y estilos Flexbox para el Modal.
+   - [NUEVO] Clases CSS añadidas (.panel-mejores-dias, .dia-top, .puntos-badge) para mostrar el Top 3 como tarjetas.
 3. app.js: 
-   - FullCalendar headerToolbar actualizado con vistas: 'dayGridMonth,dayGridWeek,dayGridDay'.
-   - dateClick ahora abre el HTML Modal en lugar de un 'prompt' nativo.
-   - Logica de modal (guardarEstado, cerrarModal) con EventListeners.
-   - Sigue usando un UUID de usuario hardcodeado temporalmente.
+   - Conexión a Supabase (sin RLS activo por ahora).
+   - dateClick abre modal, el cual hace un UPSERT a la BD. 
+   - [NUEVO] Función asíncrona actualizarPanelMejoresDias(): hace un SELECT global a 'disponibilidad', calcula peso (Disponible=2, Probable=1), agrupa, ordena y pinta el Top 3. Se ejecuta al iniciar y tras cada 'refetchEvents()'.
+   - AÚN PENDIENTE: Cambiar el UUID quemado ('PEGA_TU_UUID_AQUI') por un sistema de selección de usuario.
 
--- NOTAS --
-RLS (Row Level Security) está apagado temporalmente para pruebas.
-Aplicación completamente funcional en móviles, tablets y escritorio.
 ===========================================================

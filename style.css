@@ -82,3 +82,48 @@ h1 {
 .btn.amarillo { background-color: #ffc107; color: black; }
 .btn.gris { background-color: #6c757d; color: white; }
 .btn.rojo { background-color: #dc3545; color: white; }
+
+/* --- PANEL DE MEJORES DÍAS --- */
+.panel-mejores-dias {
+    margin-top: 25px;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.panel-mejores-dias h2 {
+    margin-top: 0;
+    color: #343a40;
+    font-size: 1.3em;
+    text-align: center;
+}
+
+#listaMejoresDias {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dia-top {
+    background: white;
+    padding: 12px 15px;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    color: #495057;
+}
+
+.puntos-badge {
+    background: #0d6efd;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+}
