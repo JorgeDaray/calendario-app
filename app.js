@@ -44,6 +44,30 @@ document.addEventListener('DOMContentLoaded', async function() {
         appContainer.classList.remove('oculto');
         renderizarCalendario();
         actualizarPanelMejoresDias();
+        iniciarSincronizacionEnVivo();
+    }
+
+    // --- NUEVA FUNCIÓN: SINCRONIZACIÓN EN TIEMPO REAL ---
+    function iniciarSincronizacionEnVivo() {
+        clienteSupabase
+            .channel('cambios-publicos')
+            // Escuchar cambios en la disponibilidad
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'disponibilidad' }, (payload) => {
+                console.log('¡Alguien actualizó su disponibilidad!', payload);
+                if (calendar) calendar.refetchEvents();
+                actualizarPanelMejoresDias();
+            })
+            // Escuchar creación de nuevos eventos
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'eventos' }, (payload) => {
+                console.log('¡Nuevo evento oficial creado!', payload);
+                if (calendar) calendar.refetchEvents();
+            })
+            // Iniciar la conexión
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('🟢 Conectado a Supabase Realtime');
+                }
+            });
     }
 
     function renderizarCalendario() {

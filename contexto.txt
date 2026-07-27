@@ -1,25 +1,24 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v7) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v8) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
 -- ESTADO DE LA BASE DE DATOS (Supabase) --
-Tablas Activas:
+Tablas Activas (Con REALTIME habilitado):
 1. perfiles: id (UUID), nombre (TEXT)
 2. disponibilidad: id, fecha, usuario_id, estado 
-3. eventos: id, titulo, descripcion, ubicacion (TEXT) [NUEVO], fecha_hora (TIMESTAMP), creado_por
+3. eventos: id, titulo, descripcion, ubicacion (TEXT), fecha_hora (TIMESTAMP), creado_por
 4. asistencia_eventos: evento_id, usuario_id, estado (asistire|no_asistire|en_espera)
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
    - Login container, App container.
-   - [ACTUALIZADO] #modalCrearEvento ahora incluye input de ubicación.
-   - [ACTUALIZADO] #modalRSVP rediseñado. Muestra ubicación, fecha, descripción, botón de exportar a GCal y la lista <ul> dinámica de asistentes.
+   - #modalCrearEvento y #modalRSVP (estilo Google Calendar).
 2. style.css: 
-   - Tarjetas, responsive, modales, panel top 3 y estilos de eventos (.btn-armar).
-   - [NUEVO] Clases .detalles-evento, .lista-asistentes y .btn.blanco-borde para formatear el modal de RSVP estilo GCal.
+   - Diseño responsivo, modales Flexbox, panel top 3 y tarjetas de asistentes.
 3. app.js: 
-   - [ACTUALIZADO] eventClick() ahora cruza tablas (asistencia_eventos JOIN perfiles) con `.select('estado, perfiles(nombre)')` para listar los nombres de los asistentes.
-   - [NUEVO] Lógica en eventClick() para formatear las fechas a formato local (sin guiones/puntos) y construir un enlace 'action=TEMPLATE' directo a Google Calendar.
-   - guardarEvento() ahora recopila e inserta la 'ubicacion' en la DB.
+   - Autenticación con supabase.auth.
+   - Renderizado híbrido de FullCalendar (lee disponibilidad + eventos).
+   - Generación de links (action=TEMPLATE) para Google Calendar.
+   - [NUEVO] iniciarSincronizacionEnVivo() agregado usando clienteSupabase.channel(). Se suscribe a 'postgres_changes' en 'disponibilidad' y 'eventos' para disparar calendar.refetchEvents() y actualizarPanelMejoresDias() automáticamente sin recargar la página.
 
 ===========================================================
