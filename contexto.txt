@@ -1,23 +1,26 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v4) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v6) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
 -- ESTADO DE LA BASE DE DATOS (Supabase) --
-Tablas:
+Tablas Activas:
 1. perfiles: id (UUID), nombre (TEXT)
-2. disponibilidad: id, fecha (DATE), usuario_id (UUID), estado (TEXT: disponible|probable|no_definido)
-3. eventos, asistencia_eventos (estructuradas, aún sin interfaz).
+2. disponibilidad: id, fecha, usuario_id, estado 
+3. eventos: id, titulo, descripcion, fecha_hora (TIMESTAMP), creado_por
+4. asistencia_eventos: evento_id, usuario_id, estado (asistire|no_asistire|en_espera)
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - [NUEVO] div.selector-usuario con select#usuarioSelect para elegir entre perfiles (ej. Jorge, Jacky) usando sus UUIDs como values.
-   - Calendario, Ventana Modal personalizadas y div.panel-mejores-dias.
+   - Login container, App container (oculto por defecto).
+   - [NUEVO] #modalCrearEvento (inputs de titulo, hora y descripción).
+   - [NUEVO] #modalRSVP (botones para confirmar asistencia).
 2. style.css: 
-   - [NUEVO] Estilos para .selector-usuario (diseño de tarjeta limpia y select amigable para móviles).
-   - Diseño responsivo básico, modal Flexbox, y tarjetas para mejores días.
+   - Tarjetas, responsive, modales y panel top 3.
+   - [NUEVO] Clases .btn-armar y .btn.morado para el flujo de eventos.
 3. app.js: 
-   - [ACTUALIZADO] guardarEstado() ahora obtiene `miUsuarioId` dinámicamente leyendo el value de select#usuarioSelect en lugar de usar un string hardcodeado.
-   - dateClick abre modal, el cual hace un UPSERT a la BD. 
-   - actualizarPanelMejoresDias() agrupa, ordena y pinta el Top 3. 
+   - [ACTUALIZADO] renderizarCalendario() ahora hace Promise.all para extraer de 'disponibilidad' y 'eventos'.
+   - La disponibilidad se pinta como `display: 'background'`, los eventos como globos morados interactivos.
+   - [NUEVO] eventClick() evalúa si es un evento oficial y despliega #modalRSVP para hacer un UPSERT a 'asistencia_eventos'.
+   - [NUEVO] actualizarPanelMejoresDias() inyecta botones .btn-armar que abren #modalCrearEvento para hacer INSERT en 'eventos'.
 
 ===========================================================

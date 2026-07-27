@@ -13,25 +13,28 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="contenedor-principal">
-        <h1>Organizador de Salidas</h1>
-        
-        <!-- NUEVO: SELECTOR DE USUARIO -->
-        <div class="selector-usuario">
-            <label for="usuarioSelect">👤 ¿Quién eres?</label>
-            <select id="usuarioSelect">
-                <!-- Tu UUID actual -->
-                <option value="f8978a87-36ce-46ae-a14e-c4ece23390c8">Jorge</option>
-                <!-- Espacio para el UUID de Jacky -->
-                <option value="PEGA_EL_UUID_DE_JACKY_AQUI">Jacky</option>
-            </select>
+<!-- NUEVO: PANTALLA DE LOGIN -->
+    <div id="login-container" class="pantalla-login">
+        <div class="tarjeta-login">
+            <h2>Iniciar Sesión</h2>
+            <input type="email" id="emailInput" placeholder="Correo electrónico" required>
+            <input type="password" id="passwordInput" placeholder="Contraseña" required>
+            <button id="btnLogin" class="btn azul">Entrar</button>
+            <p id="loginError" class="error-texto oculto"></p>
+        </div>
+    </div>
+
+    <!-- CONTENEDOR PRINCIPAL (Oculto por defecto hasta que inicias sesión) -->
+    <div id="app-container" class="contenedor-principal oculto">
+        <div class="cabecera-app">
+            <h1>Organizador de Salidas</h1>
+            <button id="btnLogout" class="btn rojo-claro">Cerrar Sesión</button>
         </div>
         
         <!-- Calendario -->
         <div id="calendar"></div>
-        <!-- ... tu <div id="calendar"></div> ... -->
         
-        <!-- NUEVO: PANEL DE MEJORES DÍAS -->
+        <!-- PANEL DE MEJORES DÍAS -->
         <div class="panel-mejores-dias">
             <h2>🏆 Mejores Días para Salir</h2>
             <ul id="listaMejoresDias">
@@ -49,6 +52,37 @@
                 <button id="btnProbable" class="btn amarillo">⚠️ Probable</button>
                 <button id="btnLimpiar" class="btn gris">🗑️ Limpiar Día</button>
                 <button id="btnCerrar" class="btn rojo">❌ Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NUEVO: VENTANA MODAL PARA CREAR EVENTO OFICIAL -->
+    <div id="modalCrearEvento" class="modal-oculto">
+        <div class="modal-contenido">
+            <h3>🎉 Crear Reunión Oficial</h3>
+            <p id="textoFechaEvento" style="color: #6c757d; margin-bottom: 15px;"></p>
+            
+            <input type="text" id="inputTituloEvento" placeholder="Título (ej. Salida a cenar)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
+            <input type="time" id="inputHoraEvento" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
+            <textarea id="inputDescEvento" placeholder="Detalles / Lugar..." style="width: 90%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ced4da;"></textarea>
+            
+            <div class="modal-botones">
+                <button id="btnGuardarEvento" class="btn morado">Guardar Evento</button>
+                <button id="btnCerrarCrearEvento" class="btn rojo">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NUEVO: VENTANA MODAL PARA RSVP (ASISTENCIA) -->
+    <div id="modalRSVP" class="modal-oculto">
+        <div class="modal-contenido">
+            <h3 id="modalRSVPTitulo">Título del Evento</h3>
+            <p>¿Confirmas tu asistencia?</p>
+            <div class="modal-botones">
+                <button id="btnRSVPAsistire" class="btn verde">👍 Asistiré</button>
+                <button id="btnRSVPEnEspera" class="btn amarillo">⏳ En Espera</button>
+                <button id="btnRSVPNoAsistire" class="btn rojo">👎 No Asistiré</button>
+                <button id="btnCerrarRSVP" class="btn gris">Cerrar</button>
             </div>
         </div>
     </div>
