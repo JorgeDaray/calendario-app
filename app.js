@@ -64,60 +64,64 @@ document.addEventListener('DOMContentLoaded', async function() {
     function renderizarCalendario() {
         var calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
-            locale: 'es', // <-- NUEVO: Convierte toda la interfaz de FullCalendar a Español
+            locale: 'es', 
+            // CORRECCIÓN: Textos forzados a español
+            buttonText: {
+                today: 'Hoy',
+                month: 'Mes',
+                week: 'Semana',
+                day: 'Día',
+                year: 'Año'
+            },
             initialView: 'dayGridMonth',
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'multiMonthYear,dayGridMonth,dayGridWeek,dayGridDay' },
             
-            // --- ACTUALIZADO: Filtro optimizado para cargar solo lo que se selecciona ---
+            // CORRECCIÓN: Lógica de filtros directa y a prueba de fallos
             events: async function(info, successCallback, failureCallback) {
-                const verDisp = document.getElementById('chkVerDisponibles').checked;
-                const verEventos = document.getElementById('chkVerEventos').checked;
+                try {
+                    const verDisp = document.getElementById('chkVerDisponibles').checked;
+                    const verEventos = document.getElementById('chkVerEventos').checked;
+                    const eventosVisuales = [];
 
-                let resDisp = { data: [], error: null };
-                let resEventos = { data: [], error: null };
-                const consultas = [];
-                
-                // Solo pedimos datos a la base si su checkbox está activado
-                if (verDisp) {
-                    consultas.push(clienteSupabase.from('disponibilidad').select('*').then(res => resDisp = res));
-                }
-                if (verEventos) {
-                    consultas.push(clienteSupabase.from('eventos').select('*').then(res => resEventos = res));
-                }
-
-                await Promise.all(consultas);
-
-                if (resDisp.error || resEventos.error) {
-                    failureCallback(resDisp.error || resEventos.error); return;
-                }
-
-                const eventosVisuales = [];
-                
-                if (verDisp && resDisp.data.length > 0) {
-                    resDisp.data.forEach(reg => {
-                        if (reg.estado === 'disponible') eventosVisuales.push({ title: 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: 'background' });
-                        else if (reg.estado === 'probable') eventosVisuales.push({ title: 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: 'background' });
-                    });
-                }
-
-                if (verEventos && resEventos.data.length > 0) {
-                    resEventos.data.forEach(evt => {
-                        eventosVisuales.push({
-                            id: evt.id,
-                            title: '🎉 ' + evt.titulo,
-                            start: evt.fecha_hora,
-                            color: '#6f42c1', 
-                            extendedProps: { 
-                                esOficial: true,
-                                descripcion: evt.descripcion,
-                                ubicacion: evt.ubicacion,
-                                creado_por: evt.creado_por
-                            }
+                    // Si está marcada la casilla de Disponibilidad, la pedimos a Supabase
+                    if (verDisp) {
+                        const { data: dataDisp, error: errDisp } = await clienteSupabase.from('disponibilidad').select('*');
+                        if (errDisp) throw errDisp;
+                        
+                        dataDisp.forEach(reg => {
+                            if (reg.estado === 'disponible') eventosVisuales.push({ title: 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: 'background' });
+                            else if (reg.estado === 'probable') eventosVisuales.push({ title: 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: 'background' });
                         });
-                    });
-                }
+                    }
 
-                successCallback(eventosVisuales);
+                    // Si está marcada la casilla de Eventos, los pedimos a Supabase
+                    if (verEventos) {
+                        const { data: dataEvt, error: errEvt } = await clienteSupabase.from('eventos').select('*');
+                        if (errEvt) throw errEvt;
+
+                        dataEvt.forEach(evt => {
+                            eventosVisuales.push({
+                                id: evt.id,
+                                title: '🎉 ' + evt.titulo,
+                                start: evt.fecha_hora,
+                                color: '#6f42c1', 
+                                extendedProps: { 
+                                    esOficial: true,
+                                    descripcion: evt.descripcion,
+                                    ubicacion: evt.ubicacion,
+                                    creado_por: evt.creado_por
+                                }
+                            });
+                        });
+                    }
+
+                    // Entregamos el resultado limpio al calendario
+                    successCallback(eventosVisuales);
+
+                } catch (error) {
+                    console.error("Error al filtrar datos:", error);
+                    failureCallback(error);
+                }
             },
             
             dateClick: function(info) {

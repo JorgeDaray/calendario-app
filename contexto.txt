@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v11) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v12) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
@@ -8,11 +8,11 @@ Tablas Activas (Con REALTIME habilitado):
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - [ACTUALIZADO] Se incluyó el script `locales/es.global.min.js` en el `<head>` para importar el idioma Español nativo de FullCalendar.
+   - [ACTUALIZADO] El script de idiomas cambió a `locales-all.global.min.js` para asegurar que carguen todas las configuraciones regionales de FullCalendar.
 2. style.css: 
-   - (Sin cambios recientes) Mantiene UI limpia y responsive.
+   - Sin cambios.
 3. app.js: 
-   - [ACTUALIZADO] Se agregó `locale: 'es'` en las opciones del Calendar para traducir automáticamente vistas ("Mes", "Año", etc.), días y meses.
-   - [ACTUALIZADO] La función de filtro en `events:` fue optimizada. Ahora evalúa el estado de `chkVerDisponibles` y `chkVerEventos` ANTES de hacer la consulta a Supabase. Si un checkbox está desactivado, esa información no se descarga de la base de datos, mejorando el rendimiento y mostrando solo lo estrictamente seleccionado por el usuario.
+   - [ACTUALIZADO] Se agregó explícitamente `buttonText` a la configuración de FullCalendar para garantizar que los botones de vistas se traduzcan al español sin depender del CDN.
+   - [ACTUALIZADO] La función de filtro en `events:` fue reescrita con un bloque `try/catch`. Ahora las peticiones a Supabase son condicionales según el estado `.checked` de los filtros, garantizando que el calendario se pinte correctamente en vivo.
 
 ===========================================================
