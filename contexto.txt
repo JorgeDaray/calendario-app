@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v12) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v13) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
@@ -8,11 +8,12 @@ Tablas Activas (Con REALTIME habilitado):
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - [ACTUALIZADO] El script de idiomas cambió a `locales-all.global.min.js` para asegurar que carguen todas las configuraciones regionales de FullCalendar.
+   - [ACTUALIZADO] Se cambiaron los nombres visuales de los checkboxes a "Días Confirmados" y "Eventos".
 2. style.css: 
    - Sin cambios.
 3. app.js: 
-   - [ACTUALIZADO] Se agregó explícitamente `buttonText` a la configuración de FullCalendar para garantizar que los botones de vistas se traduzcan al español sin depender del CDN.
-   - [ACTUALIZADO] La función de filtro en `events:` fue reescrita con un bloque `try/catch`. Ahora las peticiones a Supabase son condicionales según el estado `.checked` de los filtros, garantizando que el calendario se pinte correctamente en vivo.
+   - [ACTUALIZADO] Se integró la vista nativa `listMonth` ('Agenda') en la barra de herramientas para mostrar el calendario omitiendo los días vacíos.
+   - [ACTUALIZADO] Se incluyó `dayMaxEvents: 10` para limitar bloques gigantes en vistas de cuadrícula.
+   - [ACTUALIZADO] La función `actualizarPanelMejoresDias()` ahora aplica un límite (slice de 0 a 10). Si los resultados son > 10, inyecta un botón "Ver más fechas" utilizando la variable global `mostrarTodosLosDias` para colapsar o expandir la lista.
 
 ===========================================================

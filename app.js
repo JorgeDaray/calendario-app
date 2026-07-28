@@ -6,6 +6,7 @@ let usuarioActualId = null;
 let calendar; 
 let fechaSeleccionada = null; 
 let eventoSeleccionadoId = null; 
+let mostrarTodosLosDias = false; // NUEVO: Controla la expansión de la lista
 
 document.addEventListener('DOMContentLoaded', async function() {
     const loginContainer = document.getElementById('login-container');
@@ -65,25 +66,25 @@ document.addEventListener('DOMContentLoaded', async function() {
         var calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
             locale: 'es', 
-            // CORRECCIÓN: Textos forzados a español
             buttonText: {
                 today: 'Hoy',
                 month: 'Mes',
                 week: 'Semana',
                 day: 'Día',
-                year: 'Año'
+                year: 'Año',
+                list: 'Agenda' // Botón para la vista de lista
             },
             initialView: 'dayGridMonth',
-            headerToolbar: { left: 'prev,next today', center: 'title', right: 'multiMonthYear,dayGridMonth,dayGridWeek,dayGridDay' },
+            dayMaxEvents: 10, // Límite de bloques visibles en un solo día en la cuadrícula
+            // Se agregó listMonth a la barra para ver solo los días con datos
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'listMonth,multiMonthYear,dayGridMonth,dayGridWeek' },
             
-            // CORRECCIÓN: Lógica de filtros directa y a prueba de fallos
             events: async function(info, successCallback, failureCallback) {
                 try {
                     const verDisp = document.getElementById('chkVerDisponibles').checked;
                     const verEventos = document.getElementById('chkVerEventos').checked;
                     const eventosVisuales = [];
 
-                    // Si está marcada la casilla de Disponibilidad, la pedimos a Supabase
                     if (verDisp) {
                         const { data: dataDisp, error: errDisp } = await clienteSupabase.from('disponibilidad').select('*');
                         if (errDisp) throw errDisp;
@@ -94,7 +95,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                         });
                     }
 
-                    // Si está marcada la casilla de Eventos, los pedimos a Supabase
                     if (verEventos) {
                         const { data: dataEvt, error: errEvt } = await clienteSupabase.from('eventos').select('*');
                         if (errEvt) throw errEvt;
@@ -115,7 +115,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                         });
                     }
 
-                    // Entregamos el resultado limpio al calendario
                     successCallback(eventosVisuales);
 
                 } catch (error) {
@@ -259,6 +258,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         calendar.refetchEvents(); 
     }
 
+    // --- ACTUALIZADO: Lógica de Límite y Expansión ---
     async function actualizarPanelMejoresDias() {
         const { data, error } = await clienteSupabase.from('disponibilidad').select('*');
         if (error) return;
@@ -270,19 +270,23 @@ document.addEventListener('DOMContentLoaded', async function() {
             else if (reg.estado === 'probable') puntuacion[reg.fecha] += 1;
         });
 
-        const top3 = Object.keys(puntuacion)
+        const diasFiltrados = Object.keys(puntuacion)
             .map(fecha => ({ fecha, puntos: puntuacion[fecha] }))
             .filter(dia => dia.puntos > 0)
-            .sort((a, b) => b.puntos - a.puntos)
-            .slice(0, 3);
+            .sort((a, b) => b.puntos - a.puntos);
+            
+        // Definir límite de 10 o total si se expandió
+        const limite = mostrarTodosLosDias ? diasFiltrados.length : 10;
+        const diasAMostrar = diasFiltrados.slice(0, limite);
             
         const listaHtml = document.getElementById('listaMejoresDias');
         listaHtml.innerHTML = ''; 
-        if (top3.length === 0) {
+        
+        if (diasFiltrados.length === 0) {
             listaHtml.innerHTML = '<li style="text-align:center; color:#6c757d;">Sin datos aún.</li>'; return;
         }
 
-        top3.forEach((dia, index) => {
+        diasAMostrar.forEach((dia, index) => {
             const li = document.createElement('li');
             li.className = 'dia-top';
             li.innerHTML = `
@@ -291,6 +295,20 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
             listaHtml.appendChild(li);
         });
+
+        // Inyectar el botón de Expandir si hay más de 10 resultados
+        if (diasFiltrados.length > 10) {
+            const liBtn = document.createElement('li');
+            liBtn.style.textAlign = 'center';
+            liBtn.style.marginTop = '10px';
+            liBtn.innerHTML = `<button class="btn blanco-borde" style="width: 100%; padding: 8px;">${mostrarTodosLosDias ? 'Menos fechas' : 'Ver más fechas (' + diasFiltrados.length + ')'}</button>`;
+            listaHtml.appendChild(liBtn);
+
+            liBtn.querySelector('button').addEventListener('click', () => {
+                mostrarTodosLosDias = !mostrarTodosLosDias;
+                actualizarPanelMejoresDias(); 
+            });
+        }
 
         document.querySelectorAll('.btn-armar').forEach(btn => {
             btn.addEventListener('click', (e) => {
