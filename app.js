@@ -8,6 +8,9 @@ let fechaSeleccionada = null;
 let eventoSeleccionadoId = null; 
 let mostrarTodosLosDias = false; 
 
+// Rastreador para saber en qué vista del calendario estamos (Mes o Agenda)
+let ultimaVistaActiva = 'dayGridMonth'; 
+
 document.addEventListener('DOMContentLoaded', async function() {
     const loginContainer = document.getElementById('login-container');
     const appContainer = document.getElementById('app-container');
@@ -76,27 +79,50 @@ document.addEventListener('DOMContentLoaded', async function() {
             },
             initialView: 'dayGridMonth',
             dayMaxEvents: 10, 
-            headerToolbar: { left: 'prev,next today', center: 'title', right: 'listMonth,multiMonthYear,dayGridMonth,dayGridWeek' },
+            // Usamos listYear para que la agenda busque en todo el año y no solo en el mes actual
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'listYear,multiMonthYear,dayGridMonth,dayGridWeek' },
             
-            events: async function(info, successCallback, failureCallback) {
+            // NUEVO: Detectar cambios de vista para forzar el cambio entre "Fondo de color" y "Lista"
+            datesSet: function(info) {
+                if (ultimaVistaActiva !== info.view.type) {
+                    ultimaVistaActiva = info.view.type;
+                    calendar.refetchEvents(); 
+                }
+            },
+
+            events: async function(fetchInfo, successCallback, failureCallback) {
                 try {
                     const verDisp = document.getElementById('chkVerDisponibles').checked;
                     const verEventos = document.getElementById('chkVerEventos').checked;
                     const eventosVisuales = [];
 
-                    // NUEVO: Detectar si estamos en la vista de Agenda (lista)
-                    const esVistaLista = info.view.type.includes('list');
+                    // Evaluamos de forma segura si estamos en la agenda (lista)
+                    const esVistaLista = ultimaVistaActiva.includes('list');
+                    const modoDisplay = esVistaLista ? 'auto' : 'background'; // 'auto' para lista, 'background' para calendario normal
 
                     if (verDisp) {
                         const { data: dataDisp, error: errDisp } = await clienteSupabase.from('disponibilidad').select('*');
                         if (errDisp) throw errDisp;
                         
                         dataDisp.forEach(reg => {
-                            // Si es lista, se muestra normal ('auto'). Si es cuadrícula, como fondo ('background')
-                            const modoDisplay = esVistaLista ? 'auto' : 'background';
-
-                            if (reg.estado === 'disponible') eventosVisuales.push({ title: 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: modoDisplay });
-                            else if (reg.estado === 'probable') eventosVisuales.push({ title: 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: modoDisplay });
+                            if (reg.estado === 'disponible') {
+                                eventosVisuales.push({ 
+                                    title: esVistaLista ? '🟢 Día Confirmado Libre' : 'Disponible', 
+                                    start: reg.fecha, 
+                                    color: '#28a745', 
+                                    allDay: true, 
+                                    display: modoDisplay 
+                                });
+                            }
+                            else if (reg.estado === 'probable') {
+                                eventosVisuales.push({ 
+                                    title: esVistaLista ? '🟡 Día Probable' : 'Probable', 
+                                    start: reg.fecha, 
+                                    color: '#ffc107', 
+                                    allDay: true, 
+                                    display: modoDisplay 
+                                });
+                            }
                         });
                     }
 

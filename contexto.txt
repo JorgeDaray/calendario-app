@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v14) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v15) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
@@ -8,10 +8,13 @@ Tablas Activas (Con REALTIME habilitado):
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - Sin cambios recientes.
+   - Checkboxes de filtros renombrados a "Días Confirmados" y "Eventos".
 2. style.css: 
-   - Sin cambios recientes.
+   - UI adaptada a dispositivos móviles con grid y flexbox.
 3. app.js: 
-   - [ACTUALIZADO] La función de renderizado de `events:` ahora extrae el tipo de vista actual (`info.view.type.includes('list')`). Si es la vista 'Agenda' (lista), la disponibilidad se envía con `display: 'auto'` para forzar a FullCalendar a dibujarla. Si es la vista de cuadrícula, mantiene `display: 'background'`.
+   - [ACTUALIZADO] Se corrigió el choque (`crash`) de FullCalendar originado por evaluar `info.view` dentro de la función de datos. 
+   - [NUEVO] Se agregó la función `datesSet` del calendario para guardar `ultimaVistaActiva` en una variable global segura. 
+   - [ACTUALIZADO] El botón de 'Agenda' usa ahora `listYear` para asegurar que el usuario vea un historial completo hacia atrás y adelante.
+   - [ACTUALIZADO] La lógica de renderización usa el rastreador para detectar correctamente la vista. En vistas de "Agenda" (lista) empuja la disponibilidad con formato de texto con emojis, y en vistas normales las devuelve a `display: 'background'`.
 
 ===========================================================
