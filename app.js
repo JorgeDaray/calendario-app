@@ -6,7 +6,7 @@ let usuarioActualId = null;
 let calendar; 
 let fechaSeleccionada = null; 
 let eventoSeleccionadoId = null; 
-let mostrarTodosLosDias = false; // NUEVO: Controla la expansión de la lista
+let mostrarTodosLosDias = false; 
 
 document.addEventListener('DOMContentLoaded', async function() {
     const loginContainer = document.getElementById('login-container');
@@ -72,11 +72,10 @@ document.addEventListener('DOMContentLoaded', async function() {
                 week: 'Semana',
                 day: 'Día',
                 year: 'Año',
-                list: 'Agenda' // Botón para la vista de lista
+                list: 'Agenda' 
             },
             initialView: 'dayGridMonth',
-            dayMaxEvents: 10, // Límite de bloques visibles en un solo día en la cuadrícula
-            // Se agregó listMonth a la barra para ver solo los días con datos
+            dayMaxEvents: 10, 
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'listMonth,multiMonthYear,dayGridMonth,dayGridWeek' },
             
             events: async function(info, successCallback, failureCallback) {
@@ -85,13 +84,19 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const verEventos = document.getElementById('chkVerEventos').checked;
                     const eventosVisuales = [];
 
+                    // NUEVO: Detectar si estamos en la vista de Agenda (lista)
+                    const esVistaLista = info.view.type.includes('list');
+
                     if (verDisp) {
                         const { data: dataDisp, error: errDisp } = await clienteSupabase.from('disponibilidad').select('*');
                         if (errDisp) throw errDisp;
                         
                         dataDisp.forEach(reg => {
-                            if (reg.estado === 'disponible') eventosVisuales.push({ title: 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: 'background' });
-                            else if (reg.estado === 'probable') eventosVisuales.push({ title: 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: 'background' });
+                            // Si es lista, se muestra normal ('auto'). Si es cuadrícula, como fondo ('background')
+                            const modoDisplay = esVistaLista ? 'auto' : 'background';
+
+                            if (reg.estado === 'disponible') eventosVisuales.push({ title: 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: modoDisplay });
+                            else if (reg.estado === 'probable') eventosVisuales.push({ title: 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: modoDisplay });
                         });
                     }
 
@@ -258,7 +263,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         calendar.refetchEvents(); 
     }
 
-    // --- ACTUALIZADO: Lógica de Límite y Expansión ---
     async function actualizarPanelMejoresDias() {
         const { data, error } = await clienteSupabase.from('disponibilidad').select('*');
         if (error) return;
@@ -275,7 +279,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             .filter(dia => dia.puntos > 0)
             .sort((a, b) => b.puntos - a.puntos);
             
-        // Definir límite de 10 o total si se expandió
         const limite = mostrarTodosLosDias ? diasFiltrados.length : 10;
         const diasAMostrar = diasFiltrados.slice(0, limite);
             
@@ -296,7 +299,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             listaHtml.appendChild(li);
         });
 
-        // Inyectar el botón de Expandir si hay más de 10 resultados
         if (diasFiltrados.length > 10) {
             const liBtn = document.createElement('li');
             liBtn.style.textAlign = 'center';

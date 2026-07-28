@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v13) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v14) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
@@ -8,12 +8,10 @@ Tablas Activas (Con REALTIME habilitado):
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - [ACTUALIZADO] Se cambiaron los nombres visuales de los checkboxes a "Días Confirmados" y "Eventos".
+   - Sin cambios recientes.
 2. style.css: 
-   - Sin cambios.
+   - Sin cambios recientes.
 3. app.js: 
-   - [ACTUALIZADO] Se integró la vista nativa `listMonth` ('Agenda') en la barra de herramientas para mostrar el calendario omitiendo los días vacíos.
-   - [ACTUALIZADO] Se incluyó `dayMaxEvents: 10` para limitar bloques gigantes en vistas de cuadrícula.
-   - [ACTUALIZADO] La función `actualizarPanelMejoresDias()` ahora aplica un límite (slice de 0 a 10). Si los resultados son > 10, inyecta un botón "Ver más fechas" utilizando la variable global `mostrarTodosLosDias` para colapsar o expandir la lista.
+   - [ACTUALIZADO] La función de renderizado de `events:` ahora extrae el tipo de vista actual (`info.view.type.includes('list')`). Si es la vista 'Agenda' (lista), la disponibilidad se envía con `display: 'auto'` para forzar a FullCalendar a dibujarla. Si es la vista de cuadrícula, mantiene `display: 'background'`.
 
 ===========================================================
