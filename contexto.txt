@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v20) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v21) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL), Open-Meteo API.
 Host: Vercel.
 
@@ -8,12 +8,10 @@ Tablas Activas (Con REALTIME habilitado y RLS ACTIVO):
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - [ACTUALIZADO] Se incluyó un bloque `<select id="selectCategoriaEvento">` en el modal de creación de eventos con 6 opciones de planes diferentes.
+   - [ACTUALIZADO] Se incluyó el botón interactivo `#btnToggleTema` en `.cabecera-app` al lado de cerrar sesión.
 2. style.css: 
-   - Sin cambios recientes.
+   - [NUEVO] Agregada lógica `.dark-mode` configurada con paletas oscuras de VS Code / Terminal, incluyendo `filter: invert(1)` para inputs nativos y reseteo de variables base CSS de FullCalendar.
 3. app.js: 
-   - [ACTUALIZADO] Eliminada la lógica de Telegram (Webhooks).
-   - [NUEVO] `guardarEvento()` captura la selección de categoría y la despacha al payload de la BD. 
-   - [ACTUALIZADO] `events()` mapea en tiempo real la categoría mediante un diccionario `iconosCategorias` y renderiza el emoji dinámico fusionándolo con `evt.titulo`. Se guardó `tituloOriginal` en `extendedProps` para no afectar futuras ediciones ni las exportaciones a GCal.
+   - [NUEVO] Sistema en `DOMContentLoaded` que lee `localStorage.getItem('temaOscuro')` para aplicar la clase `.dark-mode` y cambiar el botón entre emojis 🌙/☀️, logrando un Dark Mode persistente en la sesión.
 
 ===========================================================

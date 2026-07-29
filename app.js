@@ -17,7 +17,25 @@ document.addEventListener('DOMContentLoaded', async function() {
     const btnLogin = document.getElementById('btnLogin');
     const btnLogout = document.getElementById('btnLogout');
     const loginError = document.getElementById('loginError');
+    const btnToggleTema = document.getElementById('btnToggleTema');
 
+    // --- NUEVO: Lógica del MODO OSCURO ---
+    const temaGuardado = localStorage.getItem('temaOscuro');
+    if (temaGuardado === 'true') {
+        document.body.classList.add('dark-mode');
+        if (btnToggleTema) btnToggleTema.innerText = '☀️';
+    }
+
+    if (btnToggleTema) {
+        btnToggleTema.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            const esOscuro = document.body.classList.contains('dark-mode');
+            localStorage.setItem('temaOscuro', esOscuro);
+            btnToggleTema.innerText = esOscuro ? '☀️' : '🌙';
+        });
+    }
+
+    // --- AUTENTICACIÓN ---
     const { data: { session } } = await clienteSupabase.auth.getSession();
     if (session) iniciarApp(session.user.id);
 
@@ -135,7 +153,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const { data: dataEvt, error: errEvt } = await clienteSupabase.from('eventos').select('*');
                         if (errEvt) throw errEvt;
 
-                        // NUEVO: Diccionario visual de categorías
                         const iconosCategorias = {
                             'general': '🎉',
                             'futbol': '⚽',
@@ -150,12 +167,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                             eventosVisuales.push({
                                 id: evt.id,
-                                title: `${icono} ${evt.titulo}`, // Título visual con emoji
+                                title: `${icono} ${evt.titulo}`, 
                                 start: evt.fecha_hora,
                                 color: '#6f42c1', 
                                 extendedProps: { 
                                     esOficial: true, 
-                                    tituloOriginal: evt.titulo, // Título limpio en base de datos
+                                    tituloOriginal: evt.titulo, 
                                     descripcion: evt.descripcion, 
                                     ubicacion: evt.ubicacion, 
                                     categoria: evt.categoria || 'general',
@@ -179,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const evt = info.event;
                     eventoSeleccionadoId = evt.id;
                     
-                    document.getElementById('modalRSVPTitulo').innerText = evt.title; // Mantiene el emoji en la vista de lectura
+                    document.getElementById('modalRSVPTitulo').innerText = evt.title; 
                     document.getElementById('rsvpFechaHora').innerText = evt.start.toLocaleString();
                     document.getElementById('rsvpUbicacion').innerText = evt.extendedProps.ubicacion || 'Sin ubicación definida';
                     document.getElementById('rsvpDescripcion').innerText = evt.extendedProps.descripcion || 'Sin descripción';
@@ -190,7 +207,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     };
                     const fechaInicio = evt.start;
                     const fechaFin = new Date(fechaInicio.getTime() + 2 * 60 * 60 * 1000); 
-                    const tituloGcal = evt.extendedProps.tituloOriginal; // GCal ahora exporta limpio
+                    const tituloGcal = evt.extendedProps.tituloOriginal; 
                     
                     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(tituloGcal)}&dates=${formatLocal(fechaInicio)}/${formatLocal(fechaFin)}&details=${encodeURIComponent(evt.extendedProps.descripcion || '')}&location=${encodeURIComponent(evt.extendedProps.ubicacion || '')}`;
                     document.getElementById('btnGoogleCalendar').href = gcalUrl;
@@ -263,8 +280,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                             }
 
                             document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}${climaInfo}`;
-                            document.getElementById('inputTituloEvento').value = evt.extendedProps.tituloOriginal; // Carga el título sin emoji
-                            document.getElementById('selectCategoriaEvento').value = evt.extendedProps.categoria; // Asigna la categoría seleccionada
+                            document.getElementById('inputTituloEvento').value = evt.extendedProps.tituloOriginal; 
+                            document.getElementById('selectCategoriaEvento').value = evt.extendedProps.categoria; 
                             document.getElementById('inputHoraEvento').value = `${horas}:${mins}`;
                             document.getElementById('inputUbicacionEvento').value = evt.extendedProps.ubicacion || '';
                             document.getElementById('inputDescEvento').value = evt.extendedProps.descripcion || '';
@@ -305,7 +322,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function guardarEvento() {
         const titulo = document.getElementById('inputTituloEvento').value;
-        const categoria = document.getElementById('selectCategoriaEvento').value; // NUEVO: Extraemos la categoría
+        const categoria = document.getElementById('selectCategoriaEvento').value; 
         const hora = document.getElementById('inputHoraEvento').value;
         const ubicacion = document.getElementById('inputUbicacionEvento').value;
         const desc = document.getElementById('inputDescEvento').value;
@@ -317,7 +334,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             titulo: titulo,
             descripcion: desc,
             ubicacion: ubicacion, 
-            categoria: categoria, // Guardamos la categoría en la DB
+            categoria: categoria, 
             fecha_hora: fechaHoraTimestamp
         };
 
@@ -414,7 +431,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 document.getElementById('btnGuardarEvento').innerText = 'Guardar Evento';
                 
                 document.getElementById('inputTituloEvento').value = '';
-                document.getElementById('selectCategoriaEvento').value = 'general'; // Reinicia el selector por defecto
+                document.getElementById('selectCategoriaEvento').value = 'general'; 
                 document.getElementById('inputHoraEvento').value = '';
                 document.getElementById('inputUbicacionEvento').value = '';
                 document.getElementById('inputDescEvento').value = '';

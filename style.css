@@ -307,3 +307,74 @@ h1 {
     display: inline-block;
     cursor: help;
 }
+
+/* --- MODO OSCURO (ESTÉTICA LINUX / TERMINAL) --- */
+body.dark-mode {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+.dark-mode .contenedor-principal,
+.dark-mode .tarjeta-login,
+.dark-mode .modal-contenido,
+.dark-mode .panel-mejores-dias,
+.dark-mode .herramientas-calendario,
+.dark-mode .dia-top,
+.dark-mode .detalles-evento,
+.dark-mode select,
+.dark-mode .input-herramienta,
+.dark-mode input,
+.dark-mode textarea {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border-color: #333333;
+}
+
+.dark-mode h1, .dark-mode h2, .dark-mode h3, .dark-mode h4, .dark-mode p {
+    color: #e0e0e0;
+}
+
+.dark-mode .btn.blanco-borde {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #444444;
+}
+
+.dark-mode .btn.blanco-borde:hover {
+    background-color: #3d3d3d;
+}
+
+.dark-mode .clima-badge {
+    background-color: #0e4b53;
+    color: #4dd0e1;
+}
+
+/* Modo oscuro para los inputs de tipo Date/Time y Selects */
+.dark-mode input[type="date"]::-webkit-calendar-picker-indicator,
+.dark-mode input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+}
+
+/* Modificadores de colores de FullCalendar mediante Variables Nativas */
+.dark-mode .fc {
+    --fc-page-bg-color: #121212;
+    --fc-neutral-bg-color: #1e1e1e;
+    --fc-neutral-text-color: #e0e0e0;
+    --fc-border-color: #333333;
+    --fc-button-bg-color: #2d2d2d;
+    --fc-button-border-color: #333333;
+    --fc-button-hover-bg-color: #3d3d3d;
+    --fc-button-hover-border-color: #444444;
+    --fc-button-active-bg-color: #4d4d4d;
+    --fc-button-active-border-color: #555555;
+    --fc-list-event-hover-bg-color: #2a2a2a;
+    color: #e0e0e0;
+}
+
+.dark-mode .fc .fc-daygrid-day.fc-day-today {
+    background-color: rgba(255, 255, 255, 0.05); /* Resaltar "Hoy" discretamente */
+}
+
+.dark-mode .fc a[data-navlink] {
+    color: #4dd0e1; /* Color azul terminal para los enlaces de los días */
+}

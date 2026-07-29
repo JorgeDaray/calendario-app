@@ -21,11 +21,20 @@
         </div>
     </div>
 
+    <!-- CONTENEDOR PRINCIPAL (Oculto por defecto hasta que inicias sesión) -->
     <div id="app-container" class="contenedor-principal oculto">
         <div class="cabecera-app">
+            <!-- El nombre se inyectará dinámicamente aquí -->
             <h1>👋 Hola, <span id="nombreUsuarioHeader">...</span></h1>
-            <button id="btnLogout" class="btn rojo-claro">Cerrar Sesión</button>
+            
+            <!-- NUEVO: Contenedor para alinear los botones -->
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button id="btnToggleTema" class="btn gris-claro" title="Cambiar tema">🌙</button>
+                <button id="btnLogout" class="btn rojo-claro">Cerrar Sesión</button>
+            </div>
         </div>
+
+        <!-- ...resto de tu código... -->
 
         <div class="herramientas-calendario">
             <div class="filtro-fechas">
