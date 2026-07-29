@@ -396,3 +396,7 @@ body.dark-mode {
     background-color: #0e4b53;
     color: #4dd0e1;
 }
+
+/* --- NOMBRES EN EL PANEL DE MEJORES DÍAS --- */
+.nombres-lista { color: #6c757d; font-size: 12.5px; font-weight: normal; margin-top: 3px; }
+.dark-mode .nombres-lista { color: #adb5bd; }

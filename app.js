@@ -139,7 +139,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             },
 
-            // --- NUEVO: Inyectar el clima de los próximos 7 días en el calendario ---
             dayCellDidMount: function(arg) {
                 const d = arg.date;
                 const yy = d.getFullYear();
@@ -152,7 +151,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 const dateCell = new Date(fechaStr + 'T00:00:00');
                 const diffDays = Math.round((dateCell - hoy) / (1000 * 60 * 60 * 24));
 
-                // Mostrar clima solo si la celda es hoy o los próximos 7 días
                 if (diffDays >= 0 && diffDays <= 7 && pronosticoClima[fechaStr]) {
                     const clima = pronosticoClima[fechaStr];
                     const icono = obtenerIconoClima(clima.codigo);
@@ -176,9 +174,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const verEventos = document.getElementById('chkVerEventos').checked;
                     const eventosVisuales = [];
                     const esVistaLista = ultimaVistaActiva.includes('list');
-                    const modoDisplay = esVistaLista ? 'auto' : 'background'; 
 
-                    // Fecha límite segura (No mostrar el pasado)
                     const hoyObj = new Date();
                     const yy = hoyObj.getFullYear();
                     const mm = String(hoyObj.getMonth()+1).padStart(2, '0');
@@ -186,31 +182,56 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const hoyStr = `${yy}-${mm}-${dd}`;
 
                     if (verDisp) {
-                        const { data: dataDisp, error: errDisp } = await clienteSupabase.from('disponibilidad').select('*');
+                        // ACTUALIZADO: Pide la tabla disponibilidad Y el nombre del perfil
+                        const { data: dataDisp, error: errDisp } = await clienteSupabase.from('disponibilidad').select('*, perfiles(nombre)');
                         if (errDisp) throw errDisp;
                         
+                        // Agrupar por fecha para no encimar los fondos de color
+                        const dispPorFecha = {};
                         dataDisp.forEach(reg => {
                             if (reg.fecha < hoyStr) return; // IGNORAR PASADO
 
-                            if (reg.estado === 'disponible') {
-                                eventosVisuales.push({ title: esVistaLista ? '🟢 Día Confirmado Libre' : 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: modoDisplay });
-                            } else if (reg.estado === 'probable') {
-                                eventosVisuales.push({ title: esVistaLista ? '🟡 Día Probable' : 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: modoDisplay });
+                            if (!dispPorFecha[reg.fecha]) dispPorFecha[reg.fecha] = { estadoDom: 'probable', usuarios: [] };
+                            
+                            if (reg.estado === 'disponible') dispPorFecha[reg.fecha].estadoDom = 'disponible';
+                            
+                            const nombre = reg.perfiles ? reg.perfiles.nombre : 'Alguien';
+                            dispPorFecha[reg.fecha].usuarios.push({ nombre, estado: reg.estado });
+                        });
+
+                        Object.keys(dispPorFecha).forEach(fecha => {
+                            const info = dispPorFecha[fecha];
+                            
+                            // 1. Dibujar el fondo para dar color al cuadro completo (solo en cuadrícula)
+                            if (!esVistaLista) {
+                                eventosVisuales.push({ 
+                                    start: fecha, 
+                                    color: info.estadoDom === 'disponible' ? '#28a745' : '#ffc107', 
+                                    allDay: true, 
+                                    display: 'background' 
+                                });
                             }
+
+                            // 2. Dibujar los nombres como elementos de lista 
+                            info.usuarios.forEach(user => {
+                                const icono = user.estado === 'disponible' ? '✅' : '🟡';
+                                eventosVisuales.push({ 
+                                    title: `${icono} ${user.nombre}`, 
+                                    start: fecha, 
+                                    display: esVistaLista ? 'auto' : 'list-item', 
+                                    color: user.estado === 'disponible' ? '#28a745' : '#ffc107'
+                                });
+                            });
                         });
                     }
 
                     if (verEventos) {
-                        const { data: dataEvt, error: errEvt } = await clienteSupabase.from('eventos').select('*');
+                        // ACTUALIZADO: Pide eventos Y sus asistencias confirmadas
+                        const { data: dataEvt, error: errEvt } = await clienteSupabase.from('eventos').select('*, asistencia_eventos(estado, perfiles(nombre))');
                         if (errEvt) throw errEvt;
 
                         const iconosCategorias = {
-                            'general': '🎉',
-                            'futbol': '⚽',
-                            'videojuegos': '🎮',
-                            'comida': '🍔',
-                            'cine': '🍿',
-                            'fiesta': '🍻'
+                            'general': '🎉', 'futbol': '⚽', 'videojuegos': '🎮', 'comida': '🍔', 'cine': '🍿', 'fiesta': '🍻'
                         };
 
                         dataEvt.forEach(evt => {
@@ -218,10 +239,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                             if (evtFecha < hoyStr) return; // IGNORAR PASADO
 
                             const icono = iconosCategorias[evt.categoria] || '🎉';
+                            
+                            // Recuperar lista de confirmados (los que dijeron "asistire")
+                            let textoConfirmados = '';
+                            if (evt.asistencia_eventos) {
+                                const confirmados = evt.asistencia_eventos
+                                    .filter(a => a.estado === 'asistire' && a.perfiles)
+                                    .map(a => a.perfiles.nombre);
+                                
+                                if (confirmados.length > 0) {
+                                    textoConfirmados = ` [✅ ${confirmados.join(', ')}]`;
+                                }
+                            }
 
                             eventosVisuales.push({
                                 id: evt.id,
-                                title: `${icono} ${evt.titulo}`, 
+                                title: `${icono} ${evt.titulo}${textoConfirmados}`, 
                                 start: evt.fecha_hora,
                                 color: '#6f42c1', 
                                 extendedProps: { 
@@ -434,26 +467,34 @@ document.addEventListener('DOMContentLoaded', async function() {
         cerrarModalRSVP();
     }
 
-    // --- ACTUALIZADO: Filtro del pasado y lógica de colores ---
+    // --- ACTUALIZADO: Panel de Mejores Días ahora muestra los NOMBRES ---
     async function actualizarPanelMejoresDias() {
-        const { data, error } = await clienteSupabase.from('disponibilidad').select('*');
+        const { data, error } = await clienteSupabase.from('disponibilidad').select('*, perfiles(nombre)');
         if (error) return;
 
         const puntuacion = {};
         data.forEach(reg => {
-            if (!puntuacion[reg.fecha]) puntuacion[reg.fecha] = 0;
-            if (reg.estado === 'disponible') puntuacion[reg.fecha] += 2;
-            else if (reg.estado === 'probable') puntuacion[reg.fecha] += 1;
+            if (!puntuacion[reg.fecha]) puntuacion[reg.fecha] = { puntos: 0, nombres: [] };
+            
+            const nombre = reg.perfiles ? reg.perfiles.nombre : 'Alguien';
+
+            if (reg.estado === 'disponible') {
+                puntuacion[reg.fecha].puntos += 2;
+                puntuacion[reg.fecha].nombres.push(`✅ ${nombre}`);
+            } else if (reg.estado === 'probable') {
+                puntuacion[reg.fecha].puntos += 1;
+                puntuacion[reg.fecha].nombres.push(`🟡 ${nombre}`);
+            }
         });
 
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
         const diasFiltrados = Object.keys(puntuacion)
-            .map(fecha => ({ fecha, puntos: puntuacion[fecha] }))
+            .map(fecha => ({ fecha, puntos: puntuacion[fecha].puntos, nombres: puntuacion[fecha].nombres }))
             .filter(dia => {
                 const d = new Date(dia.fecha + 'T00:00:00');
-                return dia.puntos > 0 && d >= hoy; // NO MUESTRA DÍAS VIEJOS
+                return dia.puntos > 0 && d >= hoy; 
             })
             .sort((a, b) => {
                 if (b.puntos !== a.puntos) {
@@ -483,29 +524,30 @@ document.addEventListener('DOMContentLoaded', async function() {
                 infoClima = `<span class="clima-badge" title="Mín: ${clima.min}°C | 🌧️ Lluvia: ${clima.lluvia}%">${icono} ${textoClima} ${clima.max}°C</span>`;
             }
 
-            // CALCULAR COLORES SEGÚN DISTANCIA EN EL TIEMPO
             const d = new Date(dia.fecha + 'T00:00:00');
             const diffDays = Math.round((d - hoy) / (1000 * 60 * 60 * 24));
             
             let colorBorde = '';
             let textoUrgencia = '';
             if (diffDays <= 3) {
-                colorBorde = '#dc3545'; // Rojo
+                colorBorde = '#dc3545'; 
                 textoUrgencia = '<span style="color:#dc3545; font-size:12px; font-weight:bold;">(¡Urge!)</span>';
             } else if (diffDays <= 7) {
-                colorBorde = '#ffc107'; // Amarillo
+                colorBorde = '#ffc107'; 
                 textoUrgencia = '<span style="color:#e0a800; font-size:12px; font-weight:bold;">(Próximo)</span>';
             } else {
-                colorBorde = '#28a745'; // Verde
+                colorBorde = '#28a745'; 
             }
 
             const li = document.createElement('li');
             li.className = 'dia-top';
-            li.style.borderLeft = `5px solid ${colorBorde}`; // Inyectar borde de color
+            li.style.borderLeft = `5px solid ${colorBorde}`; 
 
+            // INYECCIÓN DE LA LISTA DE NOMBRES DEBAJO DEL PUNTAJE
             li.innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:5px; flex:1;">
+                <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
                     <span>#${index + 1} - ${dia.fecha} ${textoUrgencia} <span class="puntos-badge">${dia.puntos} pts</span> ${infoClima}</span> 
+                    <span class="nombres-lista">${dia.nombres.join(', ')}</span>
                 </div>
                 <button class="btn-armar" data-fecha="${dia.fecha}">Crear Evento</button>
             `;
