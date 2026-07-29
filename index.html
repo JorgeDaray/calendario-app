@@ -95,6 +95,24 @@
         </div>
     </div>
 
+    <!-- NUEVO: VENTANA MODAL PARA CREAR/EDITAR EVENTO OFICIAL -->
+    <div id="modalCrearEvento" class="modal-oculto">
+        <div class="modal-contenido">
+            <h3 id="tituloModalEvento">🎉 Crear Reunión Oficial</h3>
+            <p id="textoFechaEvento" style="color: #6c757d; margin-bottom: 15px;"></p>
+            
+            <input type="text" id="inputTituloEvento" placeholder="Título (ej. Salida a cenar)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
+            <input type="time" id="inputHoraEvento" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
+            <input type="text" id="inputUbicacionEvento" placeholder="Ubicación (ej. Punto Sao Paulo)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
+            <textarea id="inputDescEvento" placeholder="Detalles extra..." style="width: 90%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ced4da;"></textarea>
+            
+            <div class="modal-botones">
+                <button id="btnGuardarEvento" class="btn morado">Guardar Evento</button>
+                <button id="btnCerrarCrearEvento" class="btn rojo">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- NUEVO: VENTANA MODAL PARA RSVP (ASISTENCIA Y DETALLES) -->
     <div id="modalRSVP" class="modal-oculto">
         <div class="modal-contenido">
@@ -111,11 +129,12 @@
 
             <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
 
-            <!-- NUEVO: CONTROLES DE EDICIÓN (Ocultos por defecto) -->
+            <!-- NUEVO: CONTROLES DE EDICIÓN Y BORRADO -->
             <div id="controlesCreador" class="oculto" style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffe69c; text-align: left;">
                 <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #664d03;">👑 Eres el organizador:</p>
                 <div style="display: flex; gap: 10px;">
-                    <button id="btnEliminarEvento" class="btn rojo" style="padding: 6px 12px; font-size: 13px; flex: 1;">🗑️ Cancelar Evento</button>
+                    <button id="btnEditarEvento" class="btn azul" style="padding: 6px 12px; font-size: 13px; flex: 1;">✏️ Editar</button>
+                    <button id="btnEliminarEvento" class="btn rojo" style="padding: 6px 12px; font-size: 13px; flex: 1;">🗑️ Cancelar</button>
                 </div>
             </div>
 

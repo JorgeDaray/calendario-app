@@ -1,20 +1,19 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v15) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v17) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL).
 Host: Vercel.
 
 -- ESTADO DE LA BASE DE DATOS (Supabase) --
-Tablas Activas (Con REALTIME habilitado):
+Tablas Activas (Con REALTIME habilitado y RLS ACTIVO):
 1. perfiles, 2. disponibilidad, 3. eventos, 4. asistencia_eventos
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - Checkboxes de filtros renombrados a "Días Confirmados" y "Eventos".
+   - [ACTUALIZADO] Se agregó un `id="tituloModalEvento"` al modal de creación para manipularlo por JS y un nuevo botón de edición (`btnEditarEvento`) dentro de `#controlesCreador`.
 2. style.css: 
-   - UI adaptada a dispositivos móviles con grid y flexbox.
+   - Sin cambios recientes.
 3. app.js: 
-   - [ACTUALIZADO] Se corrigió el choque (`crash`) de FullCalendar originado por evaluar `info.view` dentro de la función de datos. 
-   - [NUEVO] Se agregó la función `datesSet` del calendario para guardar `ultimaVistaActiva` en una variable global segura. 
-   - [ACTUALIZADO] El botón de 'Agenda' usa ahora `listYear` para asegurar que el usuario vea un historial completo hacia atrás y adelante.
-   - [ACTUALIZADO] La lógica de renderización usa el rastreador para detectar correctamente la vista. En vistas de "Agenda" (lista) empuja la disponibilidad con formato de texto con emojis, y en vistas normales las devuelve a `display: 'background'`.
+   - [ACTUALIZADO] Se integró la variable `modoEdicion` que cambia su estado (true/false) dependiendo de si se dio clic en un botón de creación desde el panel o en el botón de edición desde un evento existente.
+   - [ACTUALIZADO] La función `guardarEvento()` evalúa la bandera y despacha una consulta `.update().eq('id', eventoSeleccionadoId)` o un `.insert()`. 
+   - Completa el CRUD del sistema de gestión de tiempos.
 
 ===========================================================

@@ -7,8 +7,8 @@ let calendar;
 let fechaSeleccionada = null; 
 let eventoSeleccionadoId = null; 
 let mostrarTodosLosDias = false; 
+let modoEdicion = false; // NUEVO: Bandera para saber si insertamos o actualizamos
 
-// Rastreador para saber en qué vista del calendario estamos (Mes o Agenda)
 let ultimaVistaActiva = 'dayGridMonth'; 
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -79,10 +79,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             },
             initialView: 'dayGridMonth',
             dayMaxEvents: 10, 
-            // Usamos listYear para que la agenda busque en todo el año y no solo en el mes actual
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'listYear,multiMonthYear,dayGridMonth,dayGridWeek' },
             
-            // NUEVO: Detectar cambios de vista para forzar el cambio entre "Fondo de color" y "Lista"
             datesSet: function(info) {
                 if (ultimaVistaActiva !== info.view.type) {
                     ultimaVistaActiva = info.view.type;
@@ -96,9 +94,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const verEventos = document.getElementById('chkVerEventos').checked;
                     const eventosVisuales = [];
 
-                    // Evaluamos de forma segura si estamos en la agenda (lista)
                     const esVistaLista = ultimaVistaActiva.includes('list');
-                    const modoDisplay = esVistaLista ? 'auto' : 'background'; // 'auto' para lista, 'background' para calendario normal
+                    const modoDisplay = esVistaLista ? 'auto' : 'background'; 
 
                     if (verDisp) {
                         const { data: dataDisp, error: errDisp } = await clienteSupabase.from('disponibilidad').select('*');
@@ -210,13 +207,14 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                     const controlesCreador = document.getElementById('controlesCreador');
                     const btnEliminar = document.getElementById('btnEliminarEvento');
+                    const btnEditar = document.getElementById('btnEditarEvento');
 
                     if (evt.extendedProps.creado_por === usuarioActualId) {
                         controlesCreador.classList.remove('oculto');
                         
                         btnEliminar.onclick = async () => {
                             if (otrosAsistentesConfirmados > 0) {
-                                alert("⚠️ No puedes eliminar el evento porque ya hay personas confirmadas. Si no puedes asistir, simplemente cambia tu estado a 'No Asistiré' para que los demás mantengan el plan.");
+                                alert("⚠️ No puedes eliminar el evento porque ya hay personas confirmadas. Si no puedes asistir, cambia tu estado a 'No Asistiré'.");
                                 return;
                             }
                             
@@ -226,6 +224,32 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 cerrarModalRSVP();
                                 calendar.refetchEvents();
                             }
+                        };
+
+                        // NUEVO: Lógica del botón de Editar
+                        btnEditar.onclick = () => {
+                            modoEdicion = true;
+                            document.getElementById('tituloModalEvento').innerText = '✏️ Editar Reunión Oficial';
+                            document.getElementById('btnGuardarEvento').innerText = 'Actualizar Evento';
+                            
+                            // Extraer fecha y hora exactas
+                            const d = evt.start;
+                            const yy = d.getFullYear();
+                            const mm = String(d.getMonth()+1).padStart(2, '0');
+                            const dd = String(d.getDate()).padStart(2, '0');
+                            fechaSeleccionada = `${yy}-${mm}-${dd}`;
+                            
+                            const horas = String(d.getHours()).padStart(2, '0');
+                            const mins = String(d.getMinutes()).padStart(2, '0');
+                            
+                            document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}`;
+                            document.getElementById('inputTituloEvento').value = evt.title.replace('🎉 ', '');
+                            document.getElementById('inputHoraEvento').value = `${horas}:${mins}`;
+                            document.getElementById('inputUbicacionEvento').value = evt.extendedProps.ubicacion || '';
+                            document.getElementById('inputDescEvento').value = evt.extendedProps.descripcion || '';
+                            
+                            cerrarModalRSVP();
+                            document.getElementById('modalCrearEvento').className = 'modal-visible';
                         };
                     } else {
                         controlesCreador.classList.add('oculto'); 
@@ -239,7 +263,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     const cerrarModalDisp = () => document.getElementById('modalDisponibilidad').className = 'modal-oculto';
-    const cerrarModalCrear = () => document.getElementById('modalCrearEvento').className = 'modal-oculto';
+    const cerrarModalCrear = () => {
+        document.getElementById('modalCrearEvento').className = 'modal-oculto';
+        modoEdicion = false; // Resetear bandera al cerrar
+    };
     const cerrarModalRSVP = () => document.getElementById('modalRSVP').className = 'modal-oculto';
 
     async function guardarEstado(estado) {
@@ -261,16 +288,31 @@ document.addEventListener('DOMContentLoaded', async function() {
         if(!titulo || !hora) return alert("Falta título u hora");
         const fechaHoraTimestamp = `${fechaSeleccionada}T${hora}:00`;
 
-        const { error } = await clienteSupabase.from('eventos').insert({
-            titulo: titulo,
-            descripcion: desc,
-            ubicacion: ubicacion, 
-            fecha_hora: fechaHoraTimestamp,
-            creado_por: usuarioActualId
-        });
+        if (modoEdicion) {
+            // NUEVO: Flujo de actualización (UPDATE)
+            const { error } = await clienteSupabase.from('eventos').update({
+                titulo: titulo,
+                descripcion: desc,
+                ubicacion: ubicacion, 
+                fecha_hora: fechaHoraTimestamp
+            }).eq('id', eventoSeleccionadoId);
 
-        if (error) alert("Error creando evento.");
-        else calendar.refetchEvents();
+            if (error) alert("Error actualizando evento.");
+            else calendar.refetchEvents();
+
+        } else {
+            // Flujo normal de creación (INSERT)
+            const { error } = await clienteSupabase.from('eventos').insert({
+                titulo: titulo,
+                descripcion: desc,
+                ubicacion: ubicacion, 
+                fecha_hora: fechaHoraTimestamp,
+                creado_por: usuarioActualId
+            });
+
+            if (error) alert("Error creando evento.");
+            else calendar.refetchEvents();
+        }
         
         cerrarModalCrear();
     }
@@ -340,6 +382,15 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         document.querySelectorAll('.btn-armar').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                // RESETEAR MODAL PARA CREACIÓN NUEVA
+                modoEdicion = false;
+                document.getElementById('tituloModalEvento').innerText = '🎉 Crear Reunión Oficial';
+                document.getElementById('btnGuardarEvento').innerText = 'Guardar Evento';
+                document.getElementById('inputTituloEvento').value = '';
+                document.getElementById('inputHoraEvento').value = '';
+                document.getElementById('inputUbicacionEvento').value = '';
+                document.getElementById('inputDescEvento').value = '';
+
                 fechaSeleccionada = e.target.getAttribute('data-fecha');
                 document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}`;
                 document.getElementById('modalCrearEvento').className = 'modal-visible';
