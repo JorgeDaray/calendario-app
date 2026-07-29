@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v21) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v22) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL), Open-Meteo API.
 Host: Vercel.
 
@@ -8,10 +8,12 @@ Tablas Activas (Con REALTIME habilitado y RLS ACTIVO):
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - [ACTUALIZADO] Se incluyó el botón interactivo `#btnToggleTema` en `.cabecera-app` al lado de cerrar sesión.
+   - [ACTUALIZADO] Se incluyó un `<p id="rsvpClimaContainer">` dentro de la ventana de detalles de evento.
 2. style.css: 
-   - [NUEVO] Agregada lógica `.dark-mode` configurada con paletas oscuras de VS Code / Terminal, incluyendo `filter: invert(1)` para inputs nativos y reseteo de variables base CSS de FullCalendar.
+   - Soporte para Tema Oscuro y Etiquetas de Clima.
 3. app.js: 
-   - [NUEVO] Sistema en `DOMContentLoaded` que lee `localStorage.getItem('temaOscuro')` para aplicar la clase `.dark-mode` y cambiar el botón entre emojis 🌙/☀️, logrando un Dark Mode persistente en la sesión.
+   - [ACTUALIZADO] La API de Open-Meteo ahora pide la variable `precipitation_probability_max`.
+   - [NUEVO] Se integró la función `obtenerTextoClima(codigo)` que traduce la numeración WMO en descripciones claras en español.
+   - [ACTUALIZADO] Al hacer clic en un evento en el calendario, si la fecha corresponde a los próximos 14 días, el modal insertará visualmente la temperatura, el texto y la probabilidad de lluvia.
 
 ===========================================================

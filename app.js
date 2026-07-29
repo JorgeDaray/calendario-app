@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     const loginError = document.getElementById('loginError');
     const btnToggleTema = document.getElementById('btnToggleTema');
 
-    // --- NUEVO: Lógica del MODO OSCURO ---
     const temaGuardado = localStorage.getItem('temaOscuro');
     if (temaGuardado === 'true') {
         document.body.classList.add('dark-mode');
@@ -35,7 +34,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
 
-    // --- AUTENTICACIÓN ---
     const { data: { session } } = await clienteSupabase.auth.getSession();
     if (session) iniciarApp(session.user.id);
 
@@ -76,9 +74,10 @@ document.addEventListener('DOMContentLoaded', async function() {
         iniciarSincronizacionEnVivo(); 
     }
 
+    // --- ACTUALIZADO: Consulta API para incluir probabilidad de lluvia ---
     async function cargarPronostico() {
         try {
-            const url = 'https://api.open-meteo.com/v1/forecast?latitude=20.64&longitude=-103.31&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=America%2FMexico_City&forecast_days=14';
+            const url = 'https://api.open-meteo.com/v1/forecast?latitude=20.64&longitude=-103.31&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=America%2FMexico_City&forecast_days=14';
             const res = await fetch(url);
             const data = await res.json();
             
@@ -86,7 +85,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 pronosticoClima[fecha] = {
                     max: Math.round(data.daily.temperature_2m_max[index]),
                     min: Math.round(data.daily.temperature_2m_min[index]),
-                    codigo: data.daily.weathercode[index]
+                    codigo: data.daily.weathercode[index],
+                    lluvia: data.daily.precipitation_probability_max[index] || 0
                 };
             });
         } catch (e) {
@@ -102,6 +102,19 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (codigo >= 71 && codigo <= 77) return '❄️';
         if (codigo >= 95) return '⛈️';
         return '🌤️';
+    }
+
+    // NUEVO: Traductor de códigos meteorológicos a texto
+    function obtenerTextoClima(codigo) {
+        if (codigo === 0) return 'Soleado / Despejado';
+        if (codigo >= 1 && codigo <= 3) return 'Parcialmente Nublado';
+        if (codigo >= 45 && codigo <= 48) return 'Niebla';
+        if (codigo >= 51 && codigo <= 57) return 'Llovizna Ligera';
+        if (codigo >= 61 && codigo <= 67) return 'Lluvia Moderada';
+        if (codigo >= 71 && codigo <= 77) return 'Nieve';
+        if (codigo >= 80 && codigo <= 82) return 'Chubascos / Lluvia Fuerte';
+        if (codigo >= 95) return 'Tormenta Eléctrica';
+        return 'Clima Variable';
     }
 
     document.getElementById('btnIrAFecha').addEventListener('click', () => {
@@ -201,9 +214,28 @@ document.addEventListener('DOMContentLoaded', async function() {
                     document.getElementById('rsvpUbicacion').innerText = evt.extendedProps.ubicacion || 'Sin ubicación definida';
                     document.getElementById('rsvpDescripcion').innerText = evt.extendedProps.descripcion || 'Sin descripción';
 
-                    const formatLocal = (d) => {
+                    // --- ACTUALIZADO: Inyectar datos del clima en el modal del evento ---
+                    const d = evt.start;
+                    const yy = d.getFullYear();
+                    const mm = String(d.getMonth()+1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    const fechaEventoFormat = `${yy}-${mm}-${dd}`;
+                    
+                    const rsvpClimaContainer = document.getElementById('rsvpClimaContainer');
+                    if (pronosticoClima[fechaEventoFormat]) {
+                        const clima = pronosticoClima[fechaEventoFormat];
+                        const icono = obtenerIconoClima(clima.codigo);
+                        const texto = obtenerTextoClima(clima.codigo);
+                        rsvpClimaContainer.innerText = `${icono} ${texto} | Temp: ${clima.min}°C - ${clima.max}°C | 🌧️ Prob. de Lluvia: ${clima.lluvia}%`;
+                        rsvpClimaContainer.classList.remove('oculto');
+                    } else {
+                        rsvpClimaContainer.classList.add('oculto');
+                    }
+                    // ----------------------------------------------------------------------
+
+                    const formatLocal = (dateObj) => {
                         const pad = (n) => n < 10 ? '0'+n : n;
-                        return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+                        return `${dateObj.getFullYear()}${pad(dateObj.getMonth()+1)}${pad(dateObj.getDate())}T${pad(dateObj.getHours())}${pad(dateObj.getMinutes())}00`;
                     };
                     const fechaInicio = evt.start;
                     const fechaFin = new Date(fechaInicio.getTime() + 2 * 60 * 60 * 1000); 
@@ -264,11 +296,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                             document.getElementById('tituloModalEvento').innerText = '✏️ Editar Reunión Oficial';
                             document.getElementById('btnGuardarEvento').innerText = 'Actualizar Evento';
                             
-                            const d = evt.start;
-                            const yy = d.getFullYear();
-                            const mm = String(d.getMonth()+1).padStart(2, '0');
-                            const dd = String(d.getDate()).padStart(2, '0');
-                            fechaSeleccionada = `${yy}-${mm}-${dd}`;
+                            fechaSeleccionada = fechaEventoFormat;
                             
                             const horas = String(d.getHours()).padStart(2, '0');
                             const mins = String(d.getMinutes()).padStart(2, '0');
