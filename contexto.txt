@@ -1,4 +1,4 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v23) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v24) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL), Open-Meteo API.
 Host: Vercel.
 
@@ -12,7 +12,7 @@ Tablas Activas (Con REALTIME habilitado y RLS ACTIVO):
 2. style.css: 
    - Sin cambios recientes.
 3. app.js: 
-   - [ACTUALIZADO] Se modificó el `sort()` dentro de la función `actualizarPanelMejoresDias()`. Ahora, si dos días tienen la misma cantidad de puntos, el sistema calcula la diferencia absoluta (`Math.abs`) respecto a la fecha actual y coloca primero el día más cercano.
-   - [ACTUALIZADO] El string inyectado en `.clima-badge` y en la ventana de edición fue actualizado. Ahora incluye internamente la traducción al español mediante `obtenerTextoClima()` logrando que el botón muestre un resumen completo (Ej: "⛅ Parcial. Nublado 25°C").
+   - [ACTUALIZADO] Se reemplazó el `.upsert({estado: 'no_definido'})` en la función `guardarEstado()` por un método estricto `.delete().eq()`. Esto elimina el registro de la tabla en tiempo real, solucionando el problema de visualización en FullCalendar y manteniendo la base de datos más limpia.
+   - [ACTUALIZADO] Se añadió un filtro auxiliar en el render de `events()` para saltarse cualquier registro rezagado con estado `no_definido` garantizando que solo los días activos (disponible/probable) se muestren.
 
 ===========================================================

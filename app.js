@@ -182,14 +182,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const hoyStr = `${yy}-${mm}-${dd}`;
 
                     if (verDisp) {
-                        // ACTUALIZADO: Pide la tabla disponibilidad Y el nombre del perfil
                         const { data: dataDisp, error: errDisp } = await clienteSupabase.from('disponibilidad').select('*, perfiles(nombre)');
                         if (errDisp) throw errDisp;
                         
-                        // Agrupar por fecha para no encimar los fondos de color
                         const dispPorFecha = {};
                         dataDisp.forEach(reg => {
-                            if (reg.fecha < hoyStr) return; // IGNORAR PASADO
+                            if (reg.fecha < hoyStr) return; 
+                            
+                            // NUEVO: Ignorar visualmente los registros "no_definido" en caso de que quede alguno rezagado
+                            if (reg.estado === 'no_definido') return;
 
                             if (!dispPorFecha[reg.fecha]) dispPorFecha[reg.fecha] = { estadoDom: 'probable', usuarios: [] };
                             
@@ -202,7 +203,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                         Object.keys(dispPorFecha).forEach(fecha => {
                             const info = dispPorFecha[fecha];
                             
-                            // 1. Dibujar el fondo para dar color al cuadro completo (solo en cuadrícula)
                             if (!esVistaLista) {
                                 eventosVisuales.push({ 
                                     start: fecha, 
@@ -212,7 +212,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                                 });
                             }
 
-                            // 2. Dibujar los nombres como elementos de lista 
                             info.usuarios.forEach(user => {
                                 const icono = user.estado === 'disponible' ? '✅' : '🟡';
                                 eventosVisuales.push({ 
@@ -226,7 +225,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     }
 
                     if (verEventos) {
-                        // ACTUALIZADO: Pide eventos Y sus asistencias confirmadas
                         const { data: dataEvt, error: errEvt } = await clienteSupabase.from('eventos').select('*, asistencia_eventos(estado, perfiles(nombre))');
                         if (errEvt) throw errEvt;
 
@@ -236,11 +234,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                         dataEvt.forEach(evt => {
                             const evtFecha = evt.fecha_hora.split('T')[0];
-                            if (evtFecha < hoyStr) return; // IGNORAR PASADO
+                            if (evtFecha < hoyStr) return; 
 
                             const icono = iconosCategorias[evt.categoria] || '🎉';
                             
-                            // Recuperar lista de confirmados (los que dijeron "asistire")
                             let textoConfirmados = '';
                             if (evt.asistencia_eventos) {
                                 const confirmados = evt.asistencia_eventos
@@ -410,11 +407,26 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     async function guardarEstado(estado) {
         if (!fechaSeleccionada || !usuarioActualId) return;
-        const { error } = await clienteSupabase.from('disponibilidad').upsert(
-            { fecha: fechaSeleccionada, usuario_id: usuarioActualId, estado: estado }, 
-            { onConflict: 'fecha,usuario_id' }
-        );
-        if (!error) { 
+        
+        let errorObj = null;
+
+        // NUEVO: Si selecciona "Limpiar Día", se borra el registro de la base de datos
+        if (estado === 'no_definido') {
+            const { error } = await clienteSupabase.from('disponibilidad')
+                .delete()
+                .eq('fecha', fechaSeleccionada)
+                .eq('usuario_id', usuarioActualId);
+            errorObj = error;
+        } else {
+            // Si es disponible o probable, hace el guardado (upsert)
+            const { error } = await clienteSupabase.from('disponibilidad').upsert(
+                { fecha: fechaSeleccionada, usuario_id: usuarioActualId, estado: estado }, 
+                { onConflict: 'fecha,usuario_id' }
+            );
+            errorObj = error;
+        }
+
+        if (!errorObj) { 
             calendar.refetchEvents(); 
             actualizarPanelMejoresDias(); 
         }
@@ -467,7 +479,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         cerrarModalRSVP();
     }
 
-    // --- ACTUALIZADO: Panel de Mejores Días ahora muestra los NOMBRES ---
     async function actualizarPanelMejoresDias() {
         const { data, error } = await clienteSupabase.from('disponibilidad').select('*, perfiles(nombre)');
         if (error) return;
@@ -543,7 +554,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             li.className = 'dia-top';
             li.style.borderLeft = `5px solid ${colorBorde}`; 
 
-            // INYECCIÓN DE LA LISTA DE NOMBRES DEBAJO DEL PUNTAJE
             li.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:2px; flex:1;">
                     <span>#${index + 1} - ${dia.fecha} ${textoUrgencia} <span class="puntos-badge">${dia.puntos} pts</span> ${infoClima}</span> 
