@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             },
 
-            events: async function(fetchInfo, successCallback, failureCallback) {
+events: async function(fetchInfo, successCallback, failureCallback) {
                 try {
                     const verDisp = document.getElementById('chkVerDisponibles').checked;
                     const verEventos = document.getElementById('chkVerEventos').checked;
@@ -189,13 +189,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const dispPorFecha = {};
                         dataDisp.forEach(reg => {
                             if (reg.fecha < hoyStr) return; 
-                            
-                            // NUEVO: Ignorar visualmente los registros "no_definido" en caso de que quede alguno rezagado
                             if (reg.estado === 'no_definido') return;
 
-                            if (!dispPorFecha[reg.fecha]) dispPorFecha[reg.fecha] = { estadoDom: 'probable', usuarios: [] };
-                            
-                            if (reg.estado === 'disponible') dispPorFecha[reg.fecha].estadoDom = 'disponible';
+                            if (!dispPorFecha[reg.fecha]) dispPorFecha[reg.fecha] = { usuarios: [] };
                             
                             const nombre = reg.perfiles ? reg.perfiles.nombre : 'Alguien';
                             dispPorFecha[reg.fecha].usuarios.push({ nombre, estado: reg.estado });
@@ -204,41 +200,34 @@ document.addEventListener('DOMContentLoaded', async function() {
                         Object.keys(dispPorFecha).forEach(fecha => {
                             const info = dispPorFecha[fecha];
                             
-                            // Lógica inteligente para el color de fondo
                             let colorFondo = 'transparent';
+                            let emojiGeneral = '🟡';
                             const tieneDisponibles = info.usuarios.some(u => u.estado === 'disponible');
                             const tieneProbables = info.usuarios.some(u => u.estado === 'probable');
                             const todosOcupados = info.usuarios.every(u => u.estado === 'ocupado');
 
-                            // Prioridad: Verde > Amarillo > Rojo
                             if (tieneDisponibles) {
                                 colorFondo = '#28a745'; 
+                                emojiGeneral = '✅';
                             } else if (tieneProbables) {
                                 colorFondo = '#ffc107'; 
+                                emojiGeneral = '🟡';
                             } else if (todosOcupados) {
-                                colorFondo = '#dc3545'; // Fondo rojo si todos están ocupados
+                                colorFondo = '#dc3545'; 
+                                emojiGeneral = '❌';
                             }
 
-                            if (!esVistaLista && colorFondo !== 'transparent') {
-                                eventosVisuales.push({ 
-                                    start: fecha, 
-                                    color: colorFondo, 
-                                    allDay: true, 
-                                    display: 'background' 
-                                });
-                            }
-
-                            info.usuarios.forEach(user => {
-                                let icono = '✅'; let colorHex = '#28a745';
-                                if (user.estado === 'probable') { icono = '🟡'; colorHex = '#ffc107'; }
-                                else if (user.estado === 'ocupado') { icono = '❌'; colorHex = '#dc3545'; }
-
-                                eventosVisuales.push({ 
-                                    title: `${icono} ${user.nombre}`, 
-                                    start: fecha, 
-                                    display: esVistaLista ? 'auto' : 'list-item', 
-                                    color: colorHex
-                                });
+                            // Dibuja un solo bloque resumiendo la disponibilidad del día
+                            eventosVisuales.push({ 
+                                title: `${emojiGeneral} Ver Disponibles (${info.usuarios.length})`, 
+                                start: fecha, 
+                                display: 'block', 
+                                color: colorFondo,
+                                extendedProps: {
+                                    esResumenDisponibilidad: true,
+                                    listaUsuarios: info.usuarios,
+                                    fechaString: fecha
+                                }
                             });
                         });
                     }
@@ -247,9 +236,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const { data: dataEvt, error: errEvt } = await clienteSupabase.from('eventos').select('*, asistencia_eventos(estado, perfiles(nombre))');
                         if (errEvt) throw errEvt;
 
-                        const iconosCategorias = {
-                            'general': '🎉', 'futbol': '⚽', 'videojuegos': '🎮', 'comida': '🍔', 'cine': '🍿', 'fiesta': '🍻'
-                        };
+                        const iconosCategorias = { 'general': '🎉', 'futbol': '⚽', 'videojuegos': '🎮', 'comida': '🍔', 'cine': '🍿', 'fiesta': '🍻' };
 
                         dataEvt.forEach(evt => {
                             const evtFecha = evt.fecha_hora.split('T')[0];
@@ -295,6 +282,35 @@ document.addEventListener('DOMContentLoaded', async function() {
             },
 
             eventClick: async function(info) {
+                // NUEVO: Lógica para abrir el modal de listas de disponibles
+                if (info.event.extendedProps.esResumenDisponibilidad) {
+                    const usuarios = info.event.extendedProps.listaUsuarios;
+                    
+                    document.getElementById('fechaListaDisp').innerText = `Fecha: ${info.event.extendedProps.fechaString}`;
+                    
+                    const listaV = document.getElementById('listaDispVerdes');
+                    const listaA = document.getElementById('listaDispAmarillos');
+                    const listaR = document.getElementById('listaDispRojos');
+                    
+                    listaV.innerHTML = ''; listaA.innerHTML = ''; listaR.innerHTML = '';
+
+                    usuarios.forEach(u => {
+                        const li = document.createElement('li');
+                        li.innerText = u.nombre;
+                        if (u.estado === 'disponible') listaV.appendChild(li);
+                        else if (u.estado === 'probable') listaA.appendChild(li);
+                        else if (u.estado === 'ocupado') listaR.appendChild(li);
+                    });
+
+                    if (listaV.children.length === 0) listaV.innerHTML = '<li class="texto-secundario">Nadie aún.</li>';
+                    if (listaA.children.length === 0) listaA.innerHTML = '<li class="texto-secundario">Nadie aún.</li>';
+                    if (listaR.children.length === 0) listaR.innerHTML = '<li class="texto-secundario">Nadie aún.</li>';
+
+                    document.getElementById('modalListaDisponibles').className = 'modal-visible';
+                    return; // Detiene la ejecución para no abrir la ventana de evento oficial
+                }
+
+                // ... Código existente de apertura de Eventos Oficiales ...
                 if (info.event.extendedProps.esOficial) {
                     const evt = info.event;
                     eventoSeleccionadoId = evt.id;
@@ -652,6 +668,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     document.getElementById('btnOcupado').addEventListener('click', () => guardarEstado('ocupado'));
     document.getElementById('btnLimpiar').addEventListener('click', () => guardarEstado('no_definido'));
     document.getElementById('btnCerrar').addEventListener('click', cerrarModalDisp);
+    document.getElementById('btnCerrarListaDisp').addEventListener('click', () => {
+        document.getElementById('modalListaDisponibles').className = 'modal-oculto';
+    });
     
     document.getElementById('btnGuardarEvento').addEventListener('click', guardarEvento);
     document.getElementById('btnCerrarCrearEvento').addEventListener('click', cerrarModalCrear);

@@ -139,6 +139,29 @@
         </div>
     </div>
 
+    <!-- NUEVO MODAL: LISTA DE DISPONIBLES DEL DÍA -->
+    <div id="modalListaDisponibles" class="modal-oculto">
+        <div class="modal-contenido">
+            <h3 id="tituloListaDisp" style="margin-bottom: 5px;">Disponibilidad del Día</h3>
+            <p id="fechaListaDisp" class="texto-secundario"></p>
+
+            <div style="text-align: left; margin-bottom: 20px;">
+                <h4 style="color: var(--success); margin: 10px 0 5px 0;">✅ Disponibles</h4>
+                <ul id="listaDispVerdes" class="lista-asistentes" style="max-height: 80px;"></ul>
+
+                <h4 style="color: var(--warning); margin: 10px 0 5px 0;">🟡 Probables</h4>
+                <ul id="listaDispAmarillos" class="lista-asistentes" style="max-height: 80px;"></ul>
+
+                <h4 style="color: var(--danger); margin: 10px 0 5px 0;">❌ Ocupados</h4>
+                <ul id="listaDispRojos" class="lista-asistentes" style="max-height: 80px;"></ul>
+            </div>
+
+            <div class="modal-botones">
+                <button id="btnCerrarListaDisp" class="btn gris">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>
