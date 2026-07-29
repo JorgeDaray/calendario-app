@@ -1,19 +1,19 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v18) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v20) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL), Open-Meteo API.
 Host: Vercel.
 
 -- ESTADO DE LA BASE DE DATOS (Supabase) --
 Tablas Activas (Con REALTIME habilitado y RLS ACTIVO):
-1. perfiles, 2. disponibilidad, 3. eventos, 4. asistencia_eventos
+1. perfiles, 2. disponibilidad, 3. eventos (Agregada columna `categoria` TEXT), 4. asistencia_eventos
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - Sin cambios recientes.
+   - [ACTUALIZADO] Se incluyó un bloque `<select id="selectCategoriaEvento">` en el modal de creación de eventos con 6 opciones de planes diferentes.
 2. style.css: 
-   - [NUEVO] Clase `.clima-badge` agregada para estilizar visualmente la temperatura junto a los puntajes.
+   - Sin cambios recientes.
 3. app.js: 
-   - [NUEVO] Se integró la función `cargarPronostico()` que consulta la API de Open-Meteo usando las coordenadas de la zona metropolitana de Guadalajara/Tlaquepaque (Jalisco, MX). Se ejecuta al iniciar sesión (`iniciarApp`).
-   - [ACTUALIZADO] `actualizarPanelMejoresDias()` ahora valida si el día a inyectar existe en el diccionario `pronosticoClima`. Si es así, imprime el Emoji climático y la temperatura máxima.
-   - [ACTUALIZADO] Se modificó el evento de click en `.btn-armar` y en `btnEditar` para incluir el texto dinámico del clima (`climaInfo`) en la ventana modal de edición/creación.
+   - [ACTUALIZADO] Eliminada la lógica de Telegram (Webhooks).
+   - [NUEVO] `guardarEvento()` captura la selección de categoría y la despacha al payload de la BD. 
+   - [ACTUALIZADO] `events()` mapea en tiempo real la categoría mediante un diccionario `iconosCategorias` y renderiza el emoji dinámico fusionándolo con `evt.titulo`. Se guardó `tituloOriginal` en `extendedProps` para no afectar futuras ediciones ni las exportaciones a GCal.
 
 ===========================================================

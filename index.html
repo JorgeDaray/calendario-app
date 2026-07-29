@@ -5,19 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendario de Disponibilidad</title>
     
-    <!-- FullCalendar CSS y JS -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
-    
-    <!-- CORRECCIÓN: Paquete completo de idiomas para FullCalendar -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales-all.global.min.js'></script>
-    
-    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<!-- NUEVO: PANTALLA DE LOGIN -->
     <div id="login-container" class="pantalla-login">
         <div class="tarjeta-login">
             <h2>Iniciar Sesión</h2>
@@ -28,15 +21,12 @@
         </div>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL (Oculto por defecto hasta que inicias sesión) -->
     <div id="app-container" class="contenedor-principal oculto">
         <div class="cabecera-app">
-            <!-- El nombre se inyectará dinámicamente aquí -->
             <h1>👋 Hola, <span id="nombreUsuarioHeader">...</span></h1>
             <button id="btnLogout" class="btn rojo-claro">Cerrar Sesión</button>
         </div>
 
-        <!-- NUEVO: BARRA DE HERRAMIENTAS (Filtros y Búsqueda) -->
         <div class="herramientas-calendario">
             <div class="filtro-fechas">
                 <input type="date" id="inputBuscarFecha" class="input-herramienta">
@@ -52,10 +42,8 @@
             </div>
         </div>
         
-        <!-- Calendario -->
         <div id="calendar"></div>
         
-        <!-- PANEL DE MEJORES DÍAS -->
         <div class="panel-mejores-dias">
             <h2>🏆 Mejores Días para Salir</h2>
             <ul id="listaMejoresDias">
@@ -64,7 +52,6 @@
         </div>
     </div>
 
-    <!-- VENTANA MODAL (Oculta por defecto) -->
     <div id="modalDisponibilidad" class="modal-oculto">
         <div class="modal-contenido">
             <h3 id="modalFechaTexto">Selecciona tu estado</h3>
@@ -77,31 +64,24 @@
         </div>
     </div>
 
-   <!-- NUEVO: VENTANA MODAL PARA CREAR EVENTO OFICIAL -->
-    <div id="modalCrearEvento" class="modal-oculto">
-        <div class="modal-contenido">
-            <h3>🎉 Crear Reunión Oficial</h3>
-            <p id="textoFechaEvento" style="color: #6c757d; margin-bottom: 15px;"></p>
-            
-            <input type="text" id="inputTituloEvento" placeholder="Título (ej. Salida a cenar)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
-            <input type="time" id="inputHoraEvento" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
-            <input type="text" id="inputUbicacionEvento" placeholder="Ubicación (ej. Punto Sao Paulo)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
-            <textarea id="inputDescEvento" placeholder="Detalles extra..." style="width: 90%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ced4da;"></textarea>
-            
-            <div class="modal-botones">
-                <button id="btnGuardarEvento" class="btn morado">Guardar Evento</button>
-                <button id="btnCerrarCrearEvento" class="btn rojo">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- NUEVO: VENTANA MODAL PARA CREAR/EDITAR EVENTO OFICIAL -->
+    <!-- ACTUALIZADO: VENTANA MODAL PARA CREAR/EDITAR EVENTO -->
     <div id="modalCrearEvento" class="modal-oculto">
         <div class="modal-contenido">
             <h3 id="tituloModalEvento">🎉 Crear Reunión Oficial</h3>
             <p id="textoFechaEvento" style="color: #6c757d; margin-bottom: 15px;"></p>
             
             <input type="text" id="inputTituloEvento" placeholder="Título (ej. Salida a cenar)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
+            
+            <!-- NUEVO: SELECTOR DE CATEGORÍAS -->
+            <select id="selectCategoriaEvento" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da; background-color: white; font-size: 14px;">
+                <option value="general">🎉 General / Otro</option>
+                <option value="futbol">⚽ Reta de Fútbol</option>
+                <option value="videojuegos">🎮 Videojuegos</option>
+                <option value="comida">🍔 Salida a Comer</option>
+                <option value="cine">🍿 Películas / Cine</option>
+                <option value="fiesta">🍻 Fiesta / Tragos</option>
+            </select>
+
             <input type="time" id="inputHoraEvento" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
             <input type="text" id="inputUbicacionEvento" placeholder="Ubicación (ej. Punto Sao Paulo)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
             <textarea id="inputDescEvento" placeholder="Detalles extra..." style="width: 90%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ced4da;"></textarea>
@@ -113,12 +93,10 @@
         </div>
     </div>
 
-    <!-- NUEVO: VENTANA MODAL PARA RSVP (ASISTENCIA Y DETALLES) -->
     <div id="modalRSVP" class="modal-oculto">
         <div class="modal-contenido">
             <h3 id="modalRSVPTitulo" style="margin-bottom: 5px;">Título del Evento</h3>
             
-            <!-- Detalles estilo Google Calendar -->
             <div id="detallesEventoRSVP" class="detalles-evento">
                 <p>📍 <span id="rsvpUbicacion">Ubicación</span></p>
                 <p>🕒 <span id="rsvpFechaHora">Fecha y Hora</span></p>
@@ -129,7 +107,6 @@
 
             <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
 
-            <!-- NUEVO: CONTROLES DE EDICIÓN Y BORRADO -->
             <div id="controlesCreador" class="oculto" style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffe69c; text-align: left;">
                 <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #664d03;">👑 Eres el organizador:</p>
                 <div style="display: flex; gap: 10px;">
@@ -138,10 +115,8 @@
                 </div>
             </div>
 
-            <!-- Lista dinámica de asistentes -->
             <h4 style="margin: 0 0 10px 0; text-align: left;">Asistentes:</h4>
             <ul id="listaAsistentes" class="lista-asistentes">
-                <!-- Aquí se inyectarán los nombres con JS -->
             </ul>
 
             <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">

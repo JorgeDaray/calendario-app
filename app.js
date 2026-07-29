@@ -9,8 +9,6 @@ let eventoSeleccionadoId = null;
 let mostrarTodosLosDias = false; 
 let modoEdicion = false; 
 let ultimaVistaActiva = 'dayGridMonth'; 
-
-// NUEVO: Variables para almacenar el clima
 let pronosticoClima = {};
 
 document.addEventListener('DOMContentLoaded', async function() {
@@ -54,18 +52,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('nombreUsuarioHeader').innerText = perfil.nombre;
         }
 
-        // NUEVO: Cargar el clima antes de pintar la interfaz
         await cargarPronostico();
-
         renderizarCalendario();
         actualizarPanelMejoresDias();
         iniciarSincronizacionEnVivo(); 
     }
 
-    // --- NUEVO: FUNCIONES DEL CLIMA ---
     async function cargarPronostico() {
         try {
-            // Coordenadas configuradas para Tlaquepaque / Área Metropolitana de GDL
             const url = 'https://api.open-meteo.com/v1/forecast?latitude=20.64&longitude=-103.31&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=America%2FMexico_City&forecast_days=14';
             const res = await fetch(url);
             const data = await res.json();
@@ -78,17 +72,17 @@ document.addEventListener('DOMContentLoaded', async function() {
                 };
             });
         } catch (e) {
-            console.error("No se pudo cargar el pronóstico del clima", e);
+            console.error("No se pudo cargar el clima", e);
         }
     }
 
     function obtenerIconoClima(codigo) {
-        if (codigo === 0) return '☀️'; // Despejado
-        if (codigo >= 1 && codigo <= 3) return '⛅'; // Parcialmente nublado
-        if (codigo >= 45 && codigo <= 48) return '🌫️'; // Niebla
-        if ((codigo >= 51 && codigo <= 67) || (codigo >= 80 && codigo <= 82)) return '🌧️'; // Lluvia/Chubascos
-        if (codigo >= 71 && codigo <= 77) return '❄️'; // Nieve
-        if (codigo >= 95) return '⛈️'; // Tormenta
+        if (codigo === 0) return '☀️';
+        if (codigo >= 1 && codigo <= 3) return '⛅';
+        if (codigo >= 45 && codigo <= 48) return '🌫️';
+        if ((codigo >= 51 && codigo <= 67) || (codigo >= 80 && codigo <= 82)) return '🌧️';
+        if (codigo >= 71 && codigo <= 77) return '❄️';
+        if (codigo >= 95) return '⛈️';
         return '🌤️';
     }
 
@@ -104,14 +98,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         var calendarEl = document.getElementById('calendar');
         calendar = new FullCalendar.Calendar(calendarEl, {
             locale: 'es', 
-            buttonText: {
-                today: 'Hoy',
-                month: 'Mes',
-                week: 'Semana',
-                day: 'Día',
-                year: 'Año',
-                list: 'Agenda' 
-            },
+            buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', year: 'Año', list: 'Agenda' },
             initialView: 'dayGridMonth',
             dayMaxEvents: 10, 
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'listYear,multiMonthYear,dayGridMonth,dayGridWeek' },
@@ -128,7 +115,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const verDisp = document.getElementById('chkVerDisponibles').checked;
                     const verEventos = document.getElementById('chkVerEventos').checked;
                     const eventosVisuales = [];
-
                     const esVistaLista = ultimaVistaActiva.includes('list');
                     const modoDisplay = esVistaLista ? 'auto' : 'background'; 
 
@@ -138,22 +124,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                         
                         dataDisp.forEach(reg => {
                             if (reg.estado === 'disponible') {
-                                eventosVisuales.push({ 
-                                    title: esVistaLista ? '🟢 Día Confirmado Libre' : 'Disponible', 
-                                    start: reg.fecha, 
-                                    color: '#28a745', 
-                                    allDay: true, 
-                                    display: modoDisplay 
-                                });
-                            }
-                            else if (reg.estado === 'probable') {
-                                eventosVisuales.push({ 
-                                    title: esVistaLista ? '🟡 Día Probable' : 'Probable', 
-                                    start: reg.fecha, 
-                                    color: '#ffc107', 
-                                    allDay: true, 
-                                    display: modoDisplay 
-                                });
+                                eventosVisuales.push({ title: esVistaLista ? '🟢 Día Confirmado Libre' : 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: modoDisplay });
+                            } else if (reg.estado === 'probable') {
+                                eventosVisuales.push({ title: esVistaLista ? '🟡 Día Probable' : 'Probable', start: reg.fecha, color: '#ffc107', allDay: true, display: modoDisplay });
                             }
                         });
                     }
@@ -162,28 +135,37 @@ document.addEventListener('DOMContentLoaded', async function() {
                         const { data: dataEvt, error: errEvt } = await clienteSupabase.from('eventos').select('*');
                         if (errEvt) throw errEvt;
 
+                        // NUEVO: Diccionario visual de categorías
+                        const iconosCategorias = {
+                            'general': '🎉',
+                            'futbol': '⚽',
+                            'videojuegos': '🎮',
+                            'comida': '🍔',
+                            'cine': '🍿',
+                            'fiesta': '🍻'
+                        };
+
                         dataEvt.forEach(evt => {
+                            const icono = iconosCategorias[evt.categoria] || '🎉';
+
                             eventosVisuales.push({
                                 id: evt.id,
-                                title: '🎉 ' + evt.titulo,
+                                title: `${icono} ${evt.titulo}`, // Título visual con emoji
                                 start: evt.fecha_hora,
                                 color: '#6f42c1', 
                                 extendedProps: { 
-                                    esOficial: true,
-                                    descripcion: evt.descripcion,
-                                    ubicacion: evt.ubicacion,
-                                    creado_por: evt.creado_por
+                                    esOficial: true, 
+                                    tituloOriginal: evt.titulo, // Título limpio en base de datos
+                                    descripcion: evt.descripcion, 
+                                    ubicacion: evt.ubicacion, 
+                                    categoria: evt.categoria || 'general',
+                                    creado_por: evt.creado_por 
                                 }
                             });
                         });
                     }
-
                     successCallback(eventosVisuales);
-
-                } catch (error) {
-                    console.error("Error al filtrar datos:", error);
-                    failureCallback(error);
-                }
+                } catch (error) { failureCallback(error); }
             },
             
             dateClick: function(info) {
@@ -197,7 +179,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const evt = info.event;
                     eventoSeleccionadoId = evt.id;
                     
-                    document.getElementById('modalRSVPTitulo').innerText = evt.title;
+                    document.getElementById('modalRSVPTitulo').innerText = evt.title; // Mantiene el emoji en la vista de lectura
                     document.getElementById('rsvpFechaHora').innerText = evt.start.toLocaleString();
                     document.getElementById('rsvpUbicacion').innerText = evt.extendedProps.ubicacion || 'Sin ubicación definida';
                     document.getElementById('rsvpDescripcion').innerText = evt.extendedProps.descripcion || 'Sin descripción';
@@ -208,7 +190,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                     };
                     const fechaInicio = evt.start;
                     const fechaFin = new Date(fechaInicio.getTime() + 2 * 60 * 60 * 1000); 
-                    const tituloGcal = evt.title.replace('🎉 ', '');
+                    const tituloGcal = evt.extendedProps.tituloOriginal; // GCal ahora exporta limpio
                     
                     const gcalUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(tituloGcal)}&dates=${formatLocal(fechaInicio)}/${formatLocal(fechaFin)}&details=${encodeURIComponent(evt.extendedProps.descripcion || '')}&location=${encodeURIComponent(evt.extendedProps.ubicacion || '')}`;
                     document.getElementById('btnGoogleCalendar').href = gcalUrl;
@@ -222,7 +204,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
                     const listaHtml = document.getElementById('listaAsistentes');
                     listaHtml.innerHTML = '';
-                    
                     let otrosAsistentesConfirmados = 0; 
 
                     if (!error && asistentes.length > 0) {
@@ -275,7 +256,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                             const horas = String(d.getHours()).padStart(2, '0');
                             const mins = String(d.getMinutes()).padStart(2, '0');
                             
-                            // Mostrar pronóstico si hay en modo edición
                             let climaInfo = '';
                             if(pronosticoClima[fechaSeleccionada]) {
                                 const clima = pronosticoClima[fechaSeleccionada];
@@ -283,7 +263,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                             }
 
                             document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}${climaInfo}`;
-                            document.getElementById('inputTituloEvento').value = evt.title.replace('🎉 ', '');
+                            document.getElementById('inputTituloEvento').value = evt.extendedProps.tituloOriginal; // Carga el título sin emoji
+                            document.getElementById('selectCategoriaEvento').value = evt.extendedProps.categoria; // Asigna la categoría seleccionada
                             document.getElementById('inputHoraEvento').value = `${horas}:${mins}`;
                             document.getElementById('inputUbicacionEvento').value = evt.extendedProps.ubicacion || '';
                             document.getElementById('inputDescEvento').value = evt.extendedProps.descripcion || '';
@@ -315,12 +296,16 @@ document.addEventListener('DOMContentLoaded', async function() {
             { fecha: fechaSeleccionada, usuario_id: usuarioActualId, estado: estado }, 
             { onConflict: 'fecha,usuario_id' }
         );
-        if (!error) { calendar.refetchEvents(); actualizarPanelMejoresDias(); }
+        if (!error) { 
+            calendar.refetchEvents(); 
+            actualizarPanelMejoresDias(); 
+        }
         cerrarModalDisp(); 
     }
 
     async function guardarEvento() {
         const titulo = document.getElementById('inputTituloEvento').value;
+        const categoria = document.getElementById('selectCategoriaEvento').value; // NUEVO: Extraemos la categoría
         const hora = document.getElementById('inputHoraEvento').value;
         const ubicacion = document.getElementById('inputUbicacionEvento').value;
         const desc = document.getElementById('inputDescEvento').value;
@@ -328,26 +313,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         if(!titulo || !hora) return alert("Falta título u hora");
         const fechaHoraTimestamp = `${fechaSeleccionada}T${hora}:00`;
 
-        if (modoEdicion) {
-            const { error } = await clienteSupabase.from('eventos').update({
-                titulo: titulo,
-                descripcion: desc,
-                ubicacion: ubicacion, 
-                fecha_hora: fechaHoraTimestamp
-            }).eq('id', eventoSeleccionadoId);
+        const payloadDB = {
+            titulo: titulo,
+            descripcion: desc,
+            ubicacion: ubicacion, 
+            categoria: categoria, // Guardamos la categoría en la DB
+            fecha_hora: fechaHoraTimestamp
+        };
 
+        if (modoEdicion) {
+            const { error } = await clienteSupabase.from('eventos').update(payloadDB).eq('id', eventoSeleccionadoId);
             if (error) alert("Error actualizando evento.");
             else calendar.refetchEvents();
-
         } else {
-            const { error } = await clienteSupabase.from('eventos').insert({
-                titulo: titulo,
-                descripcion: desc,
-                ubicacion: ubicacion, 
-                fecha_hora: fechaHoraTimestamp,
-                creado_por: usuarioActualId
-            });
-
+            payloadDB.creado_por = usuarioActualId;
+            const { error } = await clienteSupabase.from('eventos').insert(payloadDB);
             if (error) alert("Error creando evento.");
             else calendar.refetchEvents();
         }
@@ -364,9 +344,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         );
 
         if(error) alert("Error guardando tu asistencia.");
+        else calendar.refetchEvents(); 
         
         cerrarModalRSVP();
-        calendar.refetchEvents(); 
     }
 
     async function actualizarPanelMejoresDias() {
@@ -396,7 +376,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         diasAMostrar.forEach((dia, index) => {
-            // NUEVO: Verificamos si hay clima disponible para inyectarlo visualmente
             let infoClima = '';
             if(pronosticoClima[dia.fecha]) {
                 const clima = pronosticoClima[dia.fecha];
@@ -406,7 +385,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
             const li = document.createElement('li');
             li.className = 'dia-top';
-            // Ajustamos a Flexbox para que todo cuadre perfecto con el botón
             li.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:5px; flex:1;">
                     <span>#${index + 1} - ${dia.fecha} <span class="puntos-badge">${dia.puntos} pts</span> ${infoClima}</span> 
@@ -434,14 +412,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 modoEdicion = false;
                 document.getElementById('tituloModalEvento').innerText = '🎉 Crear Reunión Oficial';
                 document.getElementById('btnGuardarEvento').innerText = 'Guardar Evento';
+                
                 document.getElementById('inputTituloEvento').value = '';
+                document.getElementById('selectCategoriaEvento').value = 'general'; // Reinicia el selector por defecto
                 document.getElementById('inputHoraEvento').value = '';
                 document.getElementById('inputUbicacionEvento').value = '';
                 document.getElementById('inputDescEvento').value = '';
 
                 fechaSeleccionada = e.target.getAttribute('data-fecha');
                 
-                // Mostrar pronóstico al crear un evento nuevo
                 let climaInfo = '';
                 if(pronosticoClima[fechaSeleccionada]) {
                     const clima = pronosticoClima[fechaSeleccionada];
