@@ -129,7 +129,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             locale: 'es', 
             buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', year: 'Año', list: 'Agenda' },
             initialView: 'dayGridMonth',
-            dayMaxEvents: 10, 
+            dayMaxEvents: 2, 
+            height: 'auto',  /* <--- AGREGA ESTA LÍNEA AQUÍ */
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'listYear,multiMonthYear,dayGridMonth,dayGridWeek' },
             
             datesSet: function(info) {
@@ -203,22 +204,40 @@ document.addEventListener('DOMContentLoaded', async function() {
                         Object.keys(dispPorFecha).forEach(fecha => {
                             const info = dispPorFecha[fecha];
                             
-                            if (!esVistaLista) {
+                            // Lógica inteligente para el color de fondo
+                            let colorFondo = 'transparent';
+                            const tieneDisponibles = info.usuarios.some(u => u.estado === 'disponible');
+                            const tieneProbables = info.usuarios.some(u => u.estado === 'probable');
+                            const todosOcupados = info.usuarios.every(u => u.estado === 'ocupado');
+
+                            // Prioridad: Verde > Amarillo > Rojo
+                            if (tieneDisponibles) {
+                                colorFondo = '#28a745'; 
+                            } else if (tieneProbables) {
+                                colorFondo = '#ffc107'; 
+                            } else if (todosOcupados) {
+                                colorFondo = '#dc3545'; // Fondo rojo si todos están ocupados
+                            }
+
+                            if (!esVistaLista && colorFondo !== 'transparent') {
                                 eventosVisuales.push({ 
                                     start: fecha, 
-                                    color: info.estadoDom === 'disponible' ? '#28a745' : '#ffc107', 
+                                    color: colorFondo, 
                                     allDay: true, 
                                     display: 'background' 
                                 });
                             }
 
                             info.usuarios.forEach(user => {
-                                const icono = user.estado === 'disponible' ? '✅' : '🟡';
+                                let icono = '✅'; let colorHex = '#28a745';
+                                if (user.estado === 'probable') { icono = '🟡'; colorHex = '#ffc107'; }
+                                else if (user.estado === 'ocupado') { icono = '❌'; colorHex = '#dc3545'; }
+
                                 eventosVisuales.push({ 
                                     title: `${icono} ${user.nombre}`, 
                                     start: fecha, 
                                     display: esVistaLista ? 'auto' : 'list-item', 
-                                    color: user.estado === 'disponible' ? '#28a745' : '#ffc107'
+                                    color: colorHex
                                 });
                             });
                         });
@@ -410,7 +429,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         
         let errorObj = null;
 
-        // NUEVO: Si selecciona "Limpiar Día", se borra el registro de la base de datos
         if (estado === 'no_definido') {
             const { error } = await clienteSupabase.from('disponibilidad')
                 .delete()
@@ -418,7 +436,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 .eq('usuario_id', usuarioActualId);
             errorObj = error;
         } else {
-            // Si es disponible o probable, hace el guardado (upsert)
             const { error } = await clienteSupabase.from('disponibilidad').upsert(
                 { fecha: fechaSeleccionada, usuario_id: usuarioActualId, estado: estado }, 
                 { onConflict: 'fecha,usuario_id' }
@@ -426,7 +443,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             errorObj = error;
         }
 
-        if (!errorObj) { 
+        // NUEVO: Si hay un error, lo mostramos en pantalla para saber qué pasa
+        if (errorObj) {
+            alert("⚠️ Error al guardar: " + errorObj.message);
+        } else { 
             calendar.refetchEvents(); 
             actualizarPanelMejoresDias(); 
         }
@@ -495,6 +515,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             } else if (reg.estado === 'probable') {
                 puntuacion[reg.fecha].puntos += 1;
                 puntuacion[reg.fecha].nombres.push(`🟡 ${nombre}`);
+            } else if (reg.estado === 'ocupado') {
+                /* No suma puntos, pero avisa quién no puede ir */
+                puntuacion[reg.fecha].nombres.push(`❌ ${nombre}`);
             }
         });
 
@@ -626,6 +649,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     document.getElementById('btnDisponible').addEventListener('click', () => guardarEstado('disponible'));
     document.getElementById('btnProbable').addEventListener('click', () => guardarEstado('probable'));
+    document.getElementById('btnOcupado').addEventListener('click', () => guardarEstado('ocupado'));
     document.getElementById('btnLimpiar').addEventListener('click', () => guardarEstado('no_definido'));
     document.getElementById('btnCerrar').addEventListener('click', cerrarModalDisp);
     

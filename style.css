@@ -318,6 +318,38 @@ input:focus, select:focus, textarea:focus {
     /* Ajustes en modales */
     .modal-contenido { padding: 20px; width: 95%; }
     .botones-flex { flex-direction: column; }
+
+    /* Garantiza que cada cuadrito tenga un tamaño mínimo decente */
+    .fc-daygrid-day-frame { 
+        min-height: 85px !important; 
+    }
+    
+    /* En celular, pone el clima arriba y el número del día abajo para que no choquen */
+    .fc-daygrid-day-top { 
+        flex-direction: column !important; 
+        align-items: center !important; 
+    }
+
+    /* Ajusta el tamaño de la etiqueta del clima en celular */
+    .clima-celda { 
+        margin: 2px 0 !important; 
+        font-size: 0.7em !important; 
+    }
 }
 
 .oculto { display: none !important; }
+
+/* Evitar que los eventos se encimen o salgan de su cuadro */
+    .fc-event {
+        overflow: hidden !important;
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+    }
+    .fc-event-title {
+        font-size: 10.5px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    .fc-daygrid-day-events {
+        margin-bottom: 0 !important;
+    }
