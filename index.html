@@ -21,20 +21,16 @@
         </div>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL (Oculto por defecto hasta que inicias sesión) -->
+    <!-- CONTENEDOR PRINCIPAL -->
     <div id="app-container" class="contenedor-principal oculto">
         <div class="cabecera-app">
-            <!-- El nombre se inyectará dinámicamente aquí -->
             <h1>👋 Hola, <span id="nombreUsuarioHeader">...</span></h1>
             
-            <!-- NUEVO: Contenedor para alinear los botones -->
-            <div style="display: flex; gap: 10px; align-items: center;">
+            <div class="botones-cabecera">
                 <button id="btnToggleTema" class="btn gris-claro" title="Cambiar tema">🌙</button>
                 <button id="btnLogout" class="btn rojo-claro">Cerrar Sesión</button>
             </div>
         </div>
-
-        <!-- ...resto de tu código... -->
 
         <div class="herramientas-calendario">
             <div class="filtro-fechas">
@@ -61,6 +57,7 @@
         </div>
     </div>
 
+    <!-- MODAL DISPONIBILIDAD -->
     <div id="modalDisponibilidad" class="modal-oculto">
         <div class="modal-contenido">
             <h3 id="modalFechaTexto">Selecciona tu estado</h3>
@@ -73,16 +70,15 @@
         </div>
     </div>
 
-    <!-- ACTUALIZADO: VENTANA MODAL PARA CREAR/EDITAR EVENTO -->
+    <!-- MODAL CREAR/EDITAR EVENTO -->
     <div id="modalCrearEvento" class="modal-oculto">
         <div class="modal-contenido">
             <h3 id="tituloModalEvento">🎉 Crear Reunión Oficial</h3>
-            <p id="textoFechaEvento" style="color: #6c757d; margin-bottom: 15px;"></p>
+            <p id="textoFechaEvento" class="texto-secundario"></p>
             
-            <input type="text" id="inputTituloEvento" placeholder="Título (ej. Salida a cenar)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
+            <input type="text" id="inputTituloEvento" placeholder="Título (ej. Salida a cenar)">
             
-            <!-- NUEVO: SELECTOR DE CATEGORÍAS -->
-            <select id="selectCategoriaEvento" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da; background-color: white; font-size: 14px;">
+            <select id="selectCategoriaEvento">
                 <option value="general">🎉 General / Otro</option>
                 <option value="futbol">⚽ Reta de Fútbol</option>
                 <option value="videojuegos">🎮 Videojuegos</option>
@@ -91,9 +87,9 @@
                 <option value="fiesta">🍻 Fiesta / Tragos</option>
             </select>
 
-            <input type="time" id="inputHoraEvento" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
-            <input type="text" id="inputUbicacionEvento" placeholder="Ubicación (ej. Punto Sao Paulo)" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #ced4da;">
-            <textarea id="inputDescEvento" placeholder="Detalles extra..." style="width: 90%; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #ced4da;"></textarea>
+            <input type="time" id="inputHoraEvento">
+            <input type="text" id="inputUbicacionEvento" placeholder="Ubicación (ej. Punto Sao Paulo)">
+            <textarea id="inputDescEvento" placeholder="Detalles extra..."></textarea>
             
             <div class="modal-botones">
                 <button id="btnGuardarEvento" class="btn morado">Guardar Evento</button>
@@ -102,36 +98,35 @@
         </div>
     </div>
 
+    <!-- MODAL RSVP DETALLES -->
     <div id="modalRSVP" class="modal-oculto">
         <div class="modal-contenido">
             <h3 id="modalRSVPTitulo" style="margin-bottom: 5px;">Título del Evento</h3>
             
-            <!-- Detalles estilo Google Calendar -->
             <div id="detallesEventoRSVP" class="detalles-evento">
                 <p>📍 <span id="rsvpUbicacion">Ubicación</span></p>
                 <p>🕒 <span id="rsvpFechaHora">Fecha y Hora</span></p>
                 <p>📝 <span id="rsvpDescripcion">Descripción</span></p>
-                <!-- NUEVO: Etiqueta para inyectar el clima detallado -->
-                <p id="rsvpClimaContainer" class="oculto" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ced4da; font-weight: bold; color: #0c8599;"></p>
+                <p id="rsvpClimaContainer" class="oculto clima-detalle-rsvp"></p>
             </div>
 
-            <a id="btnGoogleCalendar" href="#" target="_blank" class="btn blanco-borde" style="text-decoration: none; display: block; margin-bottom: 15px; color: #333;">📅 Agregar a Google Calendar</a>
+            <a id="btnGoogleCalendar" href="#" target="_blank" class="btn blanco-borde btn-bloque">📅 Agregar a Google Calendar</a>
 
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+            <hr class="separador">
 
-            <div id="controlesCreador" class="oculto" style="background: #fff3cd; padding: 10px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffe69c; text-align: left;">
-                <p style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold; color: #664d03;">👑 Eres el organizador:</p>
-                <div style="display: flex; gap: 10px;">
-                    <button id="btnEditarEvento" class="btn azul" style="padding: 6px 12px; font-size: 13px; flex: 1;">✏️ Editar</button>
-                    <button id="btnEliminarEvento" class="btn rojo" style="padding: 6px 12px; font-size: 13px; flex: 1;">🗑️ Cancelar</button>
+            <div id="controlesCreador" class="oculto caja-organizador">
+                <p>👑 Eres el organizador:</p>
+                <div class="botones-flex">
+                    <button id="btnEditarEvento" class="btn azul flex-1">✏️ Editar</button>
+                    <button id="btnEliminarEvento" class="btn rojo flex-1">🗑️ Cancelar</button>
                 </div>
             </div>
 
-            <h4 style="margin: 0 0 10px 0; text-align: left;">Asistentes:</h4>
+            <h4 class="titulo-asistentes">Asistentes:</h4>
             <ul id="listaAsistentes" class="lista-asistentes">
             </ul>
 
-            <hr style="border: 0; border-top: 1px solid #eee; margin: 15px 0;">
+            <hr class="separador">
 
             <p style="font-weight: bold;">Tu estado:</p>
             <div class="modal-botones">

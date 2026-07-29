@@ -6,7 +6,7 @@ let usuarioActualId = null;
 let calendar; 
 let fechaSeleccionada = null; 
 let eventoSeleccionadoId = null; 
-let mostrarTodosLosDias = false; 
+let limiteDias = 3;
 let modoEdicion = false; 
 let ultimaVistaActiva = 'dayGridMonth'; 
 let pronosticoClima = {};
@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', async function() {
                 return diffA - diffB;
             });
             
-        const limite = mostrarTodosLosDias ? diasFiltrados.length : 10;
+        const limite = limiteDias;
         const diasAMostrar = diasFiltrados.slice(0, limite);
             
         const listaHtml = document.getElementById('listaMejoresDias');
@@ -564,19 +564,26 @@ document.addEventListener('DOMContentLoaded', async function() {
             listaHtml.appendChild(li);
         });
 
-        if (diasFiltrados.length > 10) {
+        if (diasFiltrados.length > 3) {
             const liBtn = document.createElement('li');
             liBtn.style.textAlign = 'center';
             liBtn.style.marginTop = '10px';
-            liBtn.innerHTML = `<button class="btn blanco-borde" style="width: 100%; padding: 8px;">${mostrarTodosLosDias ? 'Menos fechas' : 'Ver más fechas (' + diasFiltrados.length + ')'}</button>`;
+            
+            // Evalúa si ya mostramos todos para cambiar el texto del botón
+            const textoBoton = limiteDias >= diasFiltrados.length ? 'Mostrar menos' : 'Ver más fechas (+5)';
+            liBtn.innerHTML = `<button class="btn blanco-borde" style="width: 100%; padding: 8px;">${textoBoton}</button>`;
             listaHtml.appendChild(liBtn);
 
             liBtn.querySelector('button').addEventListener('click', () => {
-                mostrarTodosLosDias = !mostrarTodosLosDias;
+                if (limiteDias >= diasFiltrados.length) {
+                    limiteDias = 3; // Si ya llegó al final, reinicia a 3
+                } else {
+                    limiteDias += 5; // De lo contrario, suma 5
+                }
                 actualizarPanelMejoresDias(); 
             });
         }
-
+        
         document.querySelectorAll('.btn-armar').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 modoEdicion = false;
