@@ -130,10 +130,18 @@ document.addEventListener('DOMContentLoaded', async function() {
             buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día', year: 'Año', list: 'Agenda' },
             initialView: 'dayGridMonth',
             dayMaxEvents: 2, 
-            height: 'auto',  /* <--- AGREGA ESTA LÍNEA AQUÍ */
+            height: 'auto',
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'listYear,multiMonthYear,dayGridMonth,dayGridWeek' },
             
             datesSet: function(info) {
+                // Muestra los botones solo si estamos en la vista Agenda (list)
+                const filtros = document.querySelector('.filtros-vista');
+                if (info.view.type.includes('list')) {
+                    filtros.style.display = ''; 
+                } else {
+                    filtros.style.display = 'none'; 
+                }
+
                 if (ultimaVistaActiva !== info.view.type) {
                     ultimaVistaActiva = info.view.type;
                     calendar.refetchEvents(); 
@@ -169,19 +177,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             },
 
-events: async function(fetchInfo, successCallback, failureCallback) {
+            events: async function(fetchInfo, successCallback, failureCallback) {
                 try {
-                    const verDisp = document.getElementById('chkVerDisponibles').checked;
-                    const verEventos = document.getElementById('chkVerEventos').checked;
                     const eventosVisuales = [];
                     const esVistaLista = ultimaVistaActiva.includes('list');
 
+                    // Si es calendario normal, siempre muestra todo (true). Si es agenda, hace caso a los botones.
+                    const verDisp = esVistaLista ? document.getElementById('chkVerDisponibles').checked : true;
+                    const verEventos = esVistaLista ? document.getElementById('chkVerEventos').checked : true;
+                    
                     const hoyObj = new Date();
                     const yy = hoyObj.getFullYear();
                     const mm = String(hoyObj.getMonth()+1).padStart(2, '0');
                     const dd = String(hoyObj.getDate()).padStart(2, '0');
                     const hoyStr = `${yy}-${mm}-${dd}`;
 
+                    // 1. CARGAR DISPONIBILIDAD (Bloque mapa de calor)
                     if (verDisp) {
                         const { data: dataDisp, error: errDisp } = await clienteSupabase.from('disponibilidad').select('*, perfiles(nombre)');
                         if (errDisp) throw errDisp;
@@ -192,7 +203,6 @@ events: async function(fetchInfo, successCallback, failureCallback) {
                             if (reg.estado === 'no_definido') return;
 
                             if (!dispPorFecha[reg.fecha]) dispPorFecha[reg.fecha] = { usuarios: [] };
-                            
                             const nombre = reg.perfiles ? reg.perfiles.nombre : 'Alguien';
                             dispPorFecha[reg.fecha].usuarios.push({ nombre, estado: reg.estado });
                         });
@@ -207,17 +217,14 @@ events: async function(fetchInfo, successCallback, failureCallback) {
                             const todosOcupados = info.usuarios.every(u => u.estado === 'ocupado');
 
                             if (tieneDisponibles) {
-                                colorFondo = '#28a745'; 
-                                emojiGeneral = '✅';
+                                colorFondo = '#28a745'; emojiGeneral = '✅';
                             } else if (tieneProbables) {
-                                colorFondo = '#ffc107'; 
-                                emojiGeneral = '🟡';
+                                colorFondo = '#ffc107'; emojiGeneral = '🟡';
                             } else if (todosOcupados) {
-                                colorFondo = '#dc3545'; 
-                                emojiGeneral = '❌';
+                                colorFondo = '#dc3545'; emojiGeneral = '❌';
                             }
 
-                            // Dibuja un solo bloque resumiendo la disponibilidad del día
+                            // RESTAURAMOS EL CÓDIGO CORRECTO DEL MAPA DE CALOR
                             eventosVisuales.push({ 
                                 title: `${emojiGeneral} Ver Disponibles (${info.usuarios.length})`, 
                                 start: fecha, 
@@ -232,6 +239,7 @@ events: async function(fetchInfo, successCallback, failureCallback) {
                         });
                     }
 
+                    // 2. CARGAR EVENTOS OFICIALES (Salidas, Fiestas, etc)
                     if (verEventos) {
                         const { data: dataEvt, error: errEvt } = await clienteSupabase.from('eventos').select('*, asistencia_eventos(estado, perfiles(nombre))');
                         if (errEvt) throw errEvt;
@@ -255,6 +263,7 @@ events: async function(fetchInfo, successCallback, failureCallback) {
                                 }
                             }
 
+                            // AQUÍ IBA EL NUEVO CÓDIGO REALMENTE
                             eventosVisuales.push({
                                 id: evt.id,
                                 title: `${icono} ${evt.titulo}${textoConfirmados}`, 
@@ -266,15 +275,20 @@ events: async function(fetchInfo, successCallback, failureCallback) {
                                     descripcion: evt.descripcion, 
                                     ubicacion: evt.ubicacion, 
                                     categoria: evt.categoria || 'general',
-                                    creado_por: evt.creado_por 
+                                    creado_por: evt.creado_por,
+                                    listaAsistentesEvento: evt.asistencia_eventos || [] 
                                 }
                             });
                         });
                     }
+                    
                     successCallback(eventosVisuales);
-                } catch (error) { failureCallback(error); }
+                } catch (error) { 
+                    console.error("Error al cargar datos:", error); 
+                    failureCallback(error); 
+                }
             },
-            
+
             dateClick: function(info) {
                 fechaSeleccionada = info.dateStr;
                 document.getElementById('modalFechaTexto').innerText = "Estado para: " + info.dateStr;
@@ -282,12 +296,63 @@ events: async function(fetchInfo, successCallback, failureCallback) {
             },
 
             eventClick: async function(info) {
-                // NUEVO: Lógica para abrir el modal de listas de disponibles
+                // MODAL DE DISPONIBILIDAD (Bloque mapa de calor)
                 if (info.event.extendedProps.esResumenDisponibilidad) {
                     const usuarios = info.event.extendedProps.listaUsuarios;
+                    const fechaClic = info.event.extendedProps.fechaString;
                     
-                    document.getElementById('fechaListaDisp').innerText = `Fecha: ${info.event.extendedProps.fechaString}`;
+                    document.getElementById('fechaListaDisp').innerText = `Fecha: ${fechaClic}`;
                     
+                    // --- NUEVO: Buscar y mostrar los eventos de este día ---
+                    const todosLosEventos = calendar.getEvents();
+                    const eventosDelDia = todosLosEventos.filter(e => 
+                        e.extendedProps.esOficial && 
+                        e.startStr.startsWith(fechaClic)
+                    );
+
+                    const contenedorEventos = document.getElementById('listaDispEventos');
+                    contenedorEventos.innerHTML = '';
+
+                    if (eventosDelDia.length > 0) {
+                        eventosDelDia.forEach(evt => {
+                            const divEvt = document.createElement('div');
+                            divEvt.className = 'detalles-evento'; 
+                            divEvt.style.marginBottom = '10px';
+                            divEvt.style.padding = '10px';
+                            
+                            const timeStr = evt.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                            
+                            // --- NUEVA LÓGICA: SEPARAR A LOS ASISTENTES POR ESTADO ---
+                            let htmlAsistentes = '';
+                            const asistentesEvt = evt.extendedProps.listaAsistentesEvento;
+                            if (asistentesEvt && asistentesEvt.length > 0) {
+                                const conf = asistentesEvt.filter(a => a.estado === 'asistire').map(a => a.perfiles?.nombre).join(', ');
+                                const esp = asistentesEvt.filter(a => a.estado === 'en_espera').map(a => a.perfiles?.nombre).join(', ');
+                                const no = asistentesEvt.filter(a => a.estado === 'no_asistire').map(a => a.perfiles?.nombre).join(', ');
+                                
+                                if(conf) htmlAsistentes += `<span style="color: var(--success); font-weight: bold; display: block; margin-top: 4px;">✅ Van: <span style="font-weight: normal; color: var(--text-main);">${conf}</span></span>`;
+                                if(esp) htmlAsistentes += `<span style="color: var(--warning); font-weight: bold; display: block; margin-top: 4px;">⏳ En espera: <span style="font-weight: normal; color: var(--text-main);">${esp}</span></span>`;
+                                if(no) htmlAsistentes += `<span style="color: var(--danger); font-weight: bold; display: block; margin-top: 4px;">❌ No van: <span style="font-weight: normal; color: var(--text-main);">${no}</span></span>`;
+                            } else {
+                                htmlAsistentes = `<span style="color: var(--text-muted); font-size: 13px;">Nadie ha respondido aún</span>`;
+                            }
+                            
+                            divEvt.innerHTML = `
+                                <strong style="color: var(--primary); font-size: 15px;">${evt.extendedProps.tituloOriginal}</strong>
+                                <p style="margin: 3px 0; font-size: 13px;">🕒 ${timeStr}</p>
+                                <p style="margin: 3px 0; font-size: 13px;">📍 ${evt.extendedProps.ubicacion || 'Sin ubicación'}</p>
+                                <p style="margin: 3px 0; font-size: 13px; color: var(--text-muted);">${evt.extendedProps.descripcion || 'Sin detalles extra'}</p>
+                                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-color); font-size: 13px;">
+                                    ${htmlAsistentes}
+                                </div>
+                            `;
+                            contenedorEventos.appendChild(divEvt);
+                        });
+                    } else {
+                        contenedorEventos.innerHTML = '<p class="texto-secundario" style="margin:0; font-size: 14px;">Ningún plan oficial armado aún.</p>';
+                    }
+                    // --------------------------------------------------------
+
                     const listaV = document.getElementById('listaDispVerdes');
                     const listaA = document.getElementById('listaDispAmarillos');
                     const listaR = document.getElementById('listaDispRojos');
@@ -307,10 +372,10 @@ events: async function(fetchInfo, successCallback, failureCallback) {
                     if (listaR.children.length === 0) listaR.innerHTML = '<li class="texto-secundario">Nadie aún.</li>';
 
                     document.getElementById('modalListaDisponibles').className = 'modal-visible';
-                    return; // Detiene la ejecución para no abrir la ventana de evento oficial
+                    return; 
                 }
 
-                // ... Código existente de apertura de Eventos Oficiales ...
+                // MODAL DE EVENTO OFICIAL
                 if (info.event.extendedProps.esOficial) {
                     const evt = info.event;
                     eventoSeleccionadoId = evt.id;
@@ -459,7 +524,6 @@ events: async function(fetchInfo, successCallback, failureCallback) {
             errorObj = error;
         }
 
-        // NUEVO: Si hay un error, lo mostramos en pantalla para saber qué pasa
         if (errorObj) {
             alert("⚠️ Error al guardar: " + errorObj.message);
         } else { 
@@ -477,6 +541,14 @@ events: async function(fetchInfo, successCallback, failureCallback) {
         const desc = document.getElementById('inputDescEvento').value;
 
         if(!titulo || !hora) return alert("Falta título u hora");
+
+        // --- ALERTA DE TURNO NOCTURNO ---
+        const [horasVal, minsVal] = hora.split(':').map(Number);
+        if (horasVal > 21 || (horasVal === 21 && minsVal >= 30)) {
+            const seguro = confirm("⚠️ Alerta de horario: Esta salida se cruza con tu turno que empieza a las 9:30 p.m.\n\n¿Estás seguro de que deseas agendarla a esta hora?");
+            if (!seguro) return;
+        }
+        
         const fechaHoraTimestamp = `${fechaSeleccionada}T${hora}:00`;
 
         const payloadDB = {
@@ -532,7 +604,6 @@ events: async function(fetchInfo, successCallback, failureCallback) {
                 puntuacion[reg.fecha].puntos += 1;
                 puntuacion[reg.fecha].nombres.push(`🟡 ${nombre}`);
             } else if (reg.estado === 'ocupado') {
-                /* No suma puntos, pero avisa quién no puede ir */
                 puntuacion[reg.fecha].nombres.push(`❌ ${nombre}`);
             }
         });
@@ -608,16 +679,15 @@ events: async function(fetchInfo, successCallback, failureCallback) {
             liBtn.style.textAlign = 'center';
             liBtn.style.marginTop = '10px';
             
-            // Evalúa si ya mostramos todos para cambiar el texto del botón
             const textoBoton = limiteDias >= diasFiltrados.length ? 'Mostrar menos' : 'Ver más fechas (+5)';
             liBtn.innerHTML = `<button class="btn blanco-borde" style="width: 100%; padding: 8px;">${textoBoton}</button>`;
             listaHtml.appendChild(liBtn);
 
             liBtn.querySelector('button').addEventListener('click', () => {
                 if (limiteDias >= diasFiltrados.length) {
-                    limiteDias = 3; // Si ya llegó al final, reinicia a 3
+                    limiteDias = 3; 
                 } else {
-                    limiteDias += 5; // De lo contrario, suma 5
+                    limiteDias += 5; 
                 }
                 actualizarPanelMejoresDias(); 
             });
@@ -668,6 +738,31 @@ events: async function(fetchInfo, successCallback, failureCallback) {
     document.getElementById('btnOcupado').addEventListener('click', () => guardarEstado('ocupado'));
     document.getElementById('btnLimpiar').addEventListener('click', () => guardarEstado('no_definido'));
     document.getElementById('btnCerrar').addEventListener('click', cerrarModalDisp);
+    // --- NUEVO: BOTÓN PARA CREAR EVENTO DIRECTO DESDE EL DÍA ---
+    document.getElementById('btnCrearEventoDirecto').addEventListener('click', () => {
+        cerrarModalDisp(); // Cerramos la ventanita de estado
+        
+        modoEdicion = false;
+        document.getElementById('tituloModalEvento').innerText = '🎉 Crear Reunión Oficial';
+        document.getElementById('btnGuardarEvento').innerText = 'Guardar Evento';
+        
+        document.getElementById('inputTituloEvento').value = '';
+        document.getElementById('selectCategoriaEvento').value = 'general'; 
+        document.getElementById('inputHoraEvento').value = '';
+        document.getElementById('inputUbicacionEvento').value = '';
+        document.getElementById('inputDescEvento').value = '';
+
+        // La fechaSeleccionada ya la tenemos guardada del clic original
+        let climaInfo = '';
+        if(pronosticoClima[fechaSeleccionada]) {
+            const clima = pronosticoClima[fechaSeleccionada];
+            const textoClima = obtenerTextoClima(clima.codigo);
+            climaInfo = ` | Clima: ${obtenerIconoClima(clima.codigo)} ${textoClima} ${clima.max}°C`;
+        }
+
+        document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}${climaInfo}`;
+        document.getElementById('modalCrearEvento').className = 'modal-visible';
+    });
     document.getElementById('btnCerrarListaDisp').addEventListener('click', () => {
         document.getElementById('modalListaDisponibles').className = 'modal-oculto';
     });

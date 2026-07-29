@@ -66,6 +66,10 @@
                 <button id="btnProbable" class="btn amarillo">⚠️ Probable</button>
                 <button id="btnOcupado" class="btn rojo-claro">❌ Ocupado</button>
                 <button id="btnLimpiar" class="btn gris">🗑️ Limpiar Día</button>
+                
+                <hr class="separador" style="margin: 5px 0;">
+                
+                <button id="btnCrearEventoDirecto" class="btn azul">🎉 Crear Evento Aquí</button>
                 <button id="btnCerrar" class="btn blanco-borde">Cancelar</button>
             </div>
         </div>
@@ -146,6 +150,11 @@
             <p id="fechaListaDisp" class="texto-secundario"></p>
 
             <div style="text-align: left; margin-bottom: 20px;">
+                <!-- NUEVA SECCIÓN DE EVENTOS -->
+                <h4 style="color: var(--primary); margin: 10px 0 5px 0;">🎉 Eventos del Día</h4>
+                <div id="listaDispEventos" style="margin-bottom: 15px;"></div>
+                <hr class="separador">
+
                 <h4 style="color: var(--success); margin: 10px 0 5px 0;">✅ Disponibles</h4>
                 <ul id="listaDispVerdes" class="lista-asistentes" style="max-height: 80px;"></ul>
 
