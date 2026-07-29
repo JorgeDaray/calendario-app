@@ -294,3 +294,16 @@ h1 {
         gap: 10px;
     }
 }
+
+/* --- ETIQUETA DEL CLIMA --- */
+.clima-badge {
+    background-color: #e0f7fa;
+    color: #0c8599;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    margin-left: 5px;
+    font-weight: bold;
+    display: inline-block;
+    cursor: help;
+}

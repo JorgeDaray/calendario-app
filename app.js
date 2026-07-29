@@ -7,9 +7,11 @@ let calendar;
 let fechaSeleccionada = null; 
 let eventoSeleccionadoId = null; 
 let mostrarTodosLosDias = false; 
-let modoEdicion = false; // NUEVO: Bandera para saber si insertamos o actualizamos
-
+let modoEdicion = false; 
 let ultimaVistaActiva = 'dayGridMonth'; 
+
+// NUEVO: Variables para almacenar el clima
+let pronosticoClima = {};
 
 document.addEventListener('DOMContentLoaded', async function() {
     const loginContainer = document.getElementById('login-container');
@@ -52,9 +54,42 @@ document.addEventListener('DOMContentLoaded', async function() {
             document.getElementById('nombreUsuarioHeader').innerText = perfil.nombre;
         }
 
+        // NUEVO: Cargar el clima antes de pintar la interfaz
+        await cargarPronostico();
+
         renderizarCalendario();
         actualizarPanelMejoresDias();
         iniciarSincronizacionEnVivo(); 
+    }
+
+    // --- NUEVO: FUNCIONES DEL CLIMA ---
+    async function cargarPronostico() {
+        try {
+            // Coordenadas configuradas para Tlaquepaque / Área Metropolitana de GDL
+            const url = 'https://api.open-meteo.com/v1/forecast?latitude=20.64&longitude=-103.31&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=America%2FMexico_City&forecast_days=14';
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            data.daily.time.forEach((fecha, index) => {
+                pronosticoClima[fecha] = {
+                    max: Math.round(data.daily.temperature_2m_max[index]),
+                    min: Math.round(data.daily.temperature_2m_min[index]),
+                    codigo: data.daily.weathercode[index]
+                };
+            });
+        } catch (e) {
+            console.error("No se pudo cargar el pronóstico del clima", e);
+        }
+    }
+
+    function obtenerIconoClima(codigo) {
+        if (codigo === 0) return '☀️'; // Despejado
+        if (codigo >= 1 && codigo <= 3) return '⛅'; // Parcialmente nublado
+        if (codigo >= 45 && codigo <= 48) return '🌫️'; // Niebla
+        if ((codigo >= 51 && codigo <= 67) || (codigo >= 80 && codigo <= 82)) return '🌧️'; // Lluvia/Chubascos
+        if (codigo >= 71 && codigo <= 77) return '❄️'; // Nieve
+        if (codigo >= 95) return '⛈️'; // Tormenta
+        return '🌤️';
     }
 
     document.getElementById('btnIrAFecha').addEventListener('click', () => {
@@ -226,13 +261,11 @@ document.addEventListener('DOMContentLoaded', async function() {
                             }
                         };
 
-                        // NUEVO: Lógica del botón de Editar
                         btnEditar.onclick = () => {
                             modoEdicion = true;
                             document.getElementById('tituloModalEvento').innerText = '✏️ Editar Reunión Oficial';
                             document.getElementById('btnGuardarEvento').innerText = 'Actualizar Evento';
                             
-                            // Extraer fecha y hora exactas
                             const d = evt.start;
                             const yy = d.getFullYear();
                             const mm = String(d.getMonth()+1).padStart(2, '0');
@@ -242,7 +275,14 @@ document.addEventListener('DOMContentLoaded', async function() {
                             const horas = String(d.getHours()).padStart(2, '0');
                             const mins = String(d.getMinutes()).padStart(2, '0');
                             
-                            document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}`;
+                            // Mostrar pronóstico si hay en modo edición
+                            let climaInfo = '';
+                            if(pronosticoClima[fechaSeleccionada]) {
+                                const clima = pronosticoClima[fechaSeleccionada];
+                                climaInfo = ` | Clima: ${obtenerIconoClima(clima.codigo)} ${clima.max}°C`;
+                            }
+
+                            document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}${climaInfo}`;
                             document.getElementById('inputTituloEvento').value = evt.title.replace('🎉 ', '');
                             document.getElementById('inputHoraEvento').value = `${horas}:${mins}`;
                             document.getElementById('inputUbicacionEvento').value = evt.extendedProps.ubicacion || '';
@@ -265,7 +305,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     const cerrarModalDisp = () => document.getElementById('modalDisponibilidad').className = 'modal-oculto';
     const cerrarModalCrear = () => {
         document.getElementById('modalCrearEvento').className = 'modal-oculto';
-        modoEdicion = false; // Resetear bandera al cerrar
+        modoEdicion = false; 
     };
     const cerrarModalRSVP = () => document.getElementById('modalRSVP').className = 'modal-oculto';
 
@@ -289,7 +329,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         const fechaHoraTimestamp = `${fechaSeleccionada}T${hora}:00`;
 
         if (modoEdicion) {
-            // NUEVO: Flujo de actualización (UPDATE)
             const { error } = await clienteSupabase.from('eventos').update({
                 titulo: titulo,
                 descripcion: desc,
@@ -301,7 +340,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             else calendar.refetchEvents();
 
         } else {
-            // Flujo normal de creación (INSERT)
             const { error } = await clienteSupabase.from('eventos').insert({
                 titulo: titulo,
                 descripcion: desc,
@@ -358,10 +396,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
 
         diasAMostrar.forEach((dia, index) => {
+            // NUEVO: Verificamos si hay clima disponible para inyectarlo visualmente
+            let infoClima = '';
+            if(pronosticoClima[dia.fecha]) {
+                const clima = pronosticoClima[dia.fecha];
+                const icono = obtenerIconoClima(clima.codigo);
+                infoClima = `<span class="clima-badge" title="Máx: ${clima.max}°C, Mín: ${clima.min}°C">${icono} ${clima.max}°C</span>`;
+            }
+
             const li = document.createElement('li');
             li.className = 'dia-top';
+            // Ajustamos a Flexbox para que todo cuadre perfecto con el botón
             li.innerHTML = `
-                <span>#${index + 1} - ${dia.fecha} <span class="puntos-badge">${dia.puntos} pts</span></span> 
+                <div style="display:flex; flex-direction:column; gap:5px; flex:1;">
+                    <span>#${index + 1} - ${dia.fecha} <span class="puntos-badge">${dia.puntos} pts</span> ${infoClima}</span> 
+                </div>
                 <button class="btn-armar" data-fecha="${dia.fecha}">Crear Evento</button>
             `;
             listaHtml.appendChild(li);
@@ -382,7 +431,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 
         document.querySelectorAll('.btn-armar').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                // RESETEAR MODAL PARA CREACIÓN NUEVA
                 modoEdicion = false;
                 document.getElementById('tituloModalEvento').innerText = '🎉 Crear Reunión Oficial';
                 document.getElementById('btnGuardarEvento').innerText = 'Guardar Evento';
@@ -392,7 +440,15 @@ document.addEventListener('DOMContentLoaded', async function() {
                 document.getElementById('inputDescEvento').value = '';
 
                 fechaSeleccionada = e.target.getAttribute('data-fecha');
-                document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}`;
+                
+                // Mostrar pronóstico al crear un evento nuevo
+                let climaInfo = '';
+                if(pronosticoClima[fechaSeleccionada]) {
+                    const clima = pronosticoClima[fechaSeleccionada];
+                    climaInfo = ` | Clima: ${obtenerIconoClima(clima.codigo)} ${clima.max}°C`;
+                }
+
+                document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}${climaInfo}`;
                 document.getElementById('modalCrearEvento').className = 'modal-visible';
             });
         });
