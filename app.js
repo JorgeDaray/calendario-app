@@ -74,7 +74,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         iniciarSincronizacionEnVivo(); 
     }
 
-    // --- ACTUALIZADO: Consulta API para incluir probabilidad de lluvia ---
     async function cargarPronostico() {
         try {
             const url = 'https://api.open-meteo.com/v1/forecast?latitude=20.64&longitude=-103.31&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=America%2FMexico_City&forecast_days=14';
@@ -104,17 +103,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         return '🌤️';
     }
 
-    // NUEVO: Traductor de códigos meteorológicos a texto
     function obtenerTextoClima(codigo) {
-        if (codigo === 0) return 'Soleado / Despejado';
-        if (codigo >= 1 && codigo <= 3) return 'Parcialmente Nublado';
+        if (codigo === 0) return 'Soleado';
+        if (codigo >= 1 && codigo <= 3) return 'Parcial. Nublado';
         if (codigo >= 45 && codigo <= 48) return 'Niebla';
-        if (codigo >= 51 && codigo <= 57) return 'Llovizna Ligera';
-        if (codigo >= 61 && codigo <= 67) return 'Lluvia Moderada';
+        if (codigo >= 51 && codigo <= 57) return 'Llovizna';
+        if (codigo >= 61 && codigo <= 67) return 'Lluvia';
         if (codigo >= 71 && codigo <= 77) return 'Nieve';
-        if (codigo >= 80 && codigo <= 82) return 'Chubascos / Lluvia Fuerte';
-        if (codigo >= 95) return 'Tormenta Eléctrica';
-        return 'Clima Variable';
+        if (codigo >= 80 && codigo <= 82) return 'Chubascos';
+        if (codigo >= 95) return 'Tormenta';
+        return 'Variable';
     }
 
     document.getElementById('btnIrAFecha').addEventListener('click', () => {
@@ -214,7 +212,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     document.getElementById('rsvpUbicacion').innerText = evt.extendedProps.ubicacion || 'Sin ubicación definida';
                     document.getElementById('rsvpDescripcion').innerText = evt.extendedProps.descripcion || 'Sin descripción';
 
-                    // --- ACTUALIZADO: Inyectar datos del clima en el modal del evento ---
                     const d = evt.start;
                     const yy = d.getFullYear();
                     const mm = String(d.getMonth()+1).padStart(2, '0');
@@ -231,7 +228,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     } else {
                         rsvpClimaContainer.classList.add('oculto');
                     }
-                    // ----------------------------------------------------------------------
 
                     const formatLocal = (dateObj) => {
                         const pad = (n) => n < 10 ? '0'+n : n;
@@ -304,7 +300,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                             let climaInfo = '';
                             if(pronosticoClima[fechaSeleccionada]) {
                                 const clima = pronosticoClima[fechaSeleccionada];
-                                climaInfo = ` | Clima: ${obtenerIconoClima(clima.codigo)} ${clima.max}°C`;
+                                const textoClima = obtenerTextoClima(clima.codigo);
+                                climaInfo = ` | Clima: ${obtenerIconoClima(clima.codigo)} ${textoClima} ${clima.max}°C`;
                             }
 
                             document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}${climaInfo}`;
@@ -380,20 +377,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         cerrarModalCrear();
     }
 
-    async function guardarRSVP(estado) {
-        if(!eventoSeleccionadoId || !usuarioActualId) return;
-        
-        const { error } = await clienteSupabase.from('asistencia_eventos').upsert(
-            { evento_id: eventoSeleccionadoId, usuario_id: usuarioActualId, estado: estado },
-            { onConflict: 'evento_id,usuario_id' }
-        );
-
-        if(error) alert("Error guardando tu asistencia.");
-        else calendar.refetchEvents(); 
-        
-        cerrarModalRSVP();
-    }
-
+    // --- ACTUALIZADO: Lógica de desempate y Clima en Mejores Días ---
     async function actualizarPanelMejoresDias() {
         const { data, error } = await clienteSupabase.from('disponibilidad').select('*');
         if (error) return;
@@ -405,10 +389,23 @@ document.addEventListener('DOMContentLoaded', async function() {
             else if (reg.estado === 'probable') puntuacion[reg.fecha] += 1;
         });
 
+        // Generamos la variable 'hoy' ajustada a las 00:00 para cálculos precisos
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
         const diasFiltrados = Object.keys(puntuacion)
             .map(fecha => ({ fecha, puntos: puntuacion[fecha] }))
             .filter(dia => dia.puntos > 0)
-            .sort((a, b) => b.puntos - a.puntos);
+            .sort((a, b) => {
+                // 1. Primero ordena por el puntaje más alto
+                if (b.puntos !== a.puntos) {
+                    return b.puntos - a.puntos; 
+                }
+                // 2. Desempate: El día más cercano a la fecha actual gana
+                const diffA = Math.abs(new Date(a.fecha + 'T00:00:00') - hoy);
+                const diffB = Math.abs(new Date(b.fecha + 'T00:00:00') - hoy);
+                return diffA - diffB;
+            });
             
         const limite = mostrarTodosLosDias ? diasFiltrados.length : 10;
         const diasAMostrar = diasFiltrados.slice(0, limite);
@@ -425,7 +422,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             if(pronosticoClima[dia.fecha]) {
                 const clima = pronosticoClima[dia.fecha];
                 const icono = obtenerIconoClima(clima.codigo);
-                infoClima = `<span class="clima-badge" title="Máx: ${clima.max}°C, Mín: ${clima.min}°C">${icono} ${clima.max}°C</span>`;
+                const textoClima = obtenerTextoClima(clima.codigo); // Se extrae la traducción
+                
+                // Muestra la descripción junto al número y esconde min/max en el tooltip
+                infoClima = `<span class="clima-badge" title="Mín: ${clima.min}°C | 🌧️ Lluvia: ${clima.lluvia}%">${icono} ${textoClima} ${clima.max}°C</span>`;
             }
 
             const li = document.createElement('li');
@@ -469,7 +469,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 let climaInfo = '';
                 if(pronosticoClima[fechaSeleccionada]) {
                     const clima = pronosticoClima[fechaSeleccionada];
-                    climaInfo = ` | Clima: ${obtenerIconoClima(clima.codigo)} ${clima.max}°C`;
+                    const textoClima = obtenerTextoClima(clima.codigo);
+                    climaInfo = ` | Clima: ${obtenerIconoClima(clima.codigo)} ${textoClima} ${clima.max}°C`;
                 }
 
                 document.getElementById('textoFechaEvento').innerText = `Para el día: ${fechaSeleccionada}${climaInfo}`;

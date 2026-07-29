@@ -1,19 +1,18 @@
-=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v22) ===
+=== CONTEXTO DEL PROYECTO: CALENDARIO DE DISPONIBILIDAD (ACTUALIZADO v23) ===
 Stack: HTML puro, JavaScript (FullCalendar 6), CSS (Responsive), Supabase (PostgreSQL), Open-Meteo API.
 Host: Vercel.
 
 -- ESTADO DE LA BASE DE DATOS (Supabase) --
 Tablas Activas (Con REALTIME habilitado y RLS ACTIVO):
-1. perfiles, 2. disponibilidad, 3. eventos (Agregada columna `categoria` TEXT), 4. asistencia_eventos
+1. perfiles, 2. disponibilidad, 3. eventos, 4. asistencia_eventos
 
 -- ESTADO DE LOS ARCHIVOS --
 1. index.html: 
-   - [ACTUALIZADO] Se incluyó un `<p id="rsvpClimaContainer">` dentro de la ventana de detalles de evento.
+   - Sin cambios recientes.
 2. style.css: 
-   - Soporte para Tema Oscuro y Etiquetas de Clima.
+   - Sin cambios recientes.
 3. app.js: 
-   - [ACTUALIZADO] La API de Open-Meteo ahora pide la variable `precipitation_probability_max`.
-   - [NUEVO] Se integró la función `obtenerTextoClima(codigo)` que traduce la numeración WMO en descripciones claras en español.
-   - [ACTUALIZADO] Al hacer clic en un evento en el calendario, si la fecha corresponde a los próximos 14 días, el modal insertará visualmente la temperatura, el texto y la probabilidad de lluvia.
+   - [ACTUALIZADO] Se modificó el `sort()` dentro de la función `actualizarPanelMejoresDias()`. Ahora, si dos días tienen la misma cantidad de puntos, el sistema calcula la diferencia absoluta (`Math.abs`) respecto a la fecha actual y coloca primero el día más cercano.
+   - [ACTUALIZADO] El string inyectado en `.clima-badge` y en la ventana de edición fue actualizado. Ahora incluye internamente la traducción al español mediante `obtenerTextoClima()` logrando que el botón muestre un resumen completo (Ej: "⛅ Parcial. Nublado 25°C").
 
 ===========================================================
