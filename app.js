@@ -139,6 +139,37 @@ document.addEventListener('DOMContentLoaded', async function() {
                 }
             },
 
+            // --- NUEVO: Inyectar el clima de los próximos 7 días en el calendario ---
+            dayCellDidMount: function(arg) {
+                const d = arg.date;
+                const yy = d.getFullYear();
+                const mm = String(d.getMonth()+1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                const fechaStr = `${yy}-${mm}-${dd}`;
+
+                const hoy = new Date();
+                hoy.setHours(0,0,0,0);
+                const dateCell = new Date(fechaStr + 'T00:00:00');
+                const diffDays = Math.round((dateCell - hoy) / (1000 * 60 * 60 * 24));
+
+                // Mostrar clima solo si la celda es hoy o los próximos 7 días
+                if (diffDays >= 0 && diffDays <= 7 && pronosticoClima[fechaStr]) {
+                    const clima = pronosticoClima[fechaStr];
+                    const icono = obtenerIconoClima(clima.codigo);
+
+                    const climaDiv = document.createElement('div');
+                    climaDiv.className = 'clima-celda';
+                    climaDiv.title = `Temp: ${clima.min}°C - ${clima.max}°C\nLluvia: ${clima.lluvia}%`;
+                    climaDiv.innerHTML = `${icono} ${clima.max}°C`;
+
+                    const dayTop = arg.el.querySelector('.fc-daygrid-day-top');
+                    if (dayTop) {
+                        dayTop.style.justifyContent = 'space-between';
+                        dayTop.prepend(climaDiv);
+                    }
+                }
+            },
+
             events: async function(fetchInfo, successCallback, failureCallback) {
                 try {
                     const verDisp = document.getElementById('chkVerDisponibles').checked;
@@ -147,11 +178,20 @@ document.addEventListener('DOMContentLoaded', async function() {
                     const esVistaLista = ultimaVistaActiva.includes('list');
                     const modoDisplay = esVistaLista ? 'auto' : 'background'; 
 
+                    // Fecha límite segura (No mostrar el pasado)
+                    const hoyObj = new Date();
+                    const yy = hoyObj.getFullYear();
+                    const mm = String(hoyObj.getMonth()+1).padStart(2, '0');
+                    const dd = String(hoyObj.getDate()).padStart(2, '0');
+                    const hoyStr = `${yy}-${mm}-${dd}`;
+
                     if (verDisp) {
                         const { data: dataDisp, error: errDisp } = await clienteSupabase.from('disponibilidad').select('*');
                         if (errDisp) throw errDisp;
                         
                         dataDisp.forEach(reg => {
+                            if (reg.fecha < hoyStr) return; // IGNORAR PASADO
+
                             if (reg.estado === 'disponible') {
                                 eventosVisuales.push({ title: esVistaLista ? '🟢 Día Confirmado Libre' : 'Disponible', start: reg.fecha, color: '#28a745', allDay: true, display: modoDisplay });
                             } else if (reg.estado === 'probable') {
@@ -174,6 +214,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                         };
 
                         dataEvt.forEach(evt => {
+                            const evtFecha = evt.fecha_hora.split('T')[0];
+                            if (evtFecha < hoyStr) return; // IGNORAR PASADO
+
                             const icono = iconosCategorias[evt.categoria] || '🎉';
 
                             eventosVisuales.push({
@@ -377,7 +420,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         cerrarModalCrear();
     }
 
-    // --- ACTUALIZADO: Lógica de desempate y Clima en Mejores Días ---
+    async function guardarRSVP(estado) {
+        if(!eventoSeleccionadoId || !usuarioActualId) return;
+        
+        const { error } = await clienteSupabase.from('asistencia_eventos').upsert(
+            { evento_id: eventoSeleccionadoId, usuario_id: usuarioActualId, estado: estado },
+            { onConflict: 'evento_id,usuario_id' }
+        );
+
+        if(error) alert("Error guardando tu asistencia.");
+        else calendar.refetchEvents(); 
+        
+        cerrarModalRSVP();
+    }
+
+    // --- ACTUALIZADO: Filtro del pasado y lógica de colores ---
     async function actualizarPanelMejoresDias() {
         const { data, error } = await clienteSupabase.from('disponibilidad').select('*');
         if (error) return;
@@ -389,19 +446,19 @@ document.addEventListener('DOMContentLoaded', async function() {
             else if (reg.estado === 'probable') puntuacion[reg.fecha] += 1;
         });
 
-        // Generamos la variable 'hoy' ajustada a las 00:00 para cálculos precisos
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
         const diasFiltrados = Object.keys(puntuacion)
             .map(fecha => ({ fecha, puntos: puntuacion[fecha] }))
-            .filter(dia => dia.puntos > 0)
+            .filter(dia => {
+                const d = new Date(dia.fecha + 'T00:00:00');
+                return dia.puntos > 0 && d >= hoy; // NO MUESTRA DÍAS VIEJOS
+            })
             .sort((a, b) => {
-                // 1. Primero ordena por el puntaje más alto
                 if (b.puntos !== a.puntos) {
                     return b.puntos - a.puntos; 
                 }
-                // 2. Desempate: El día más cercano a la fecha actual gana
                 const diffA = Math.abs(new Date(a.fecha + 'T00:00:00') - hoy);
                 const diffB = Math.abs(new Date(b.fecha + 'T00:00:00') - hoy);
                 return diffA - diffB;
@@ -422,17 +479,33 @@ document.addEventListener('DOMContentLoaded', async function() {
             if(pronosticoClima[dia.fecha]) {
                 const clima = pronosticoClima[dia.fecha];
                 const icono = obtenerIconoClima(clima.codigo);
-                const textoClima = obtenerTextoClima(clima.codigo); // Se extrae la traducción
-                
-                // Muestra la descripción junto al número y esconde min/max en el tooltip
+                const textoClima = obtenerTextoClima(clima.codigo); 
                 infoClima = `<span class="clima-badge" title="Mín: ${clima.min}°C | 🌧️ Lluvia: ${clima.lluvia}%">${icono} ${textoClima} ${clima.max}°C</span>`;
+            }
+
+            // CALCULAR COLORES SEGÚN DISTANCIA EN EL TIEMPO
+            const d = new Date(dia.fecha + 'T00:00:00');
+            const diffDays = Math.round((d - hoy) / (1000 * 60 * 60 * 24));
+            
+            let colorBorde = '';
+            let textoUrgencia = '';
+            if (diffDays <= 3) {
+                colorBorde = '#dc3545'; // Rojo
+                textoUrgencia = '<span style="color:#dc3545; font-size:12px; font-weight:bold;">(¡Urge!)</span>';
+            } else if (diffDays <= 7) {
+                colorBorde = '#ffc107'; // Amarillo
+                textoUrgencia = '<span style="color:#e0a800; font-size:12px; font-weight:bold;">(Próximo)</span>';
+            } else {
+                colorBorde = '#28a745'; // Verde
             }
 
             const li = document.createElement('li');
             li.className = 'dia-top';
+            li.style.borderLeft = `5px solid ${colorBorde}`; // Inyectar borde de color
+
             li.innerHTML = `
                 <div style="display:flex; flex-direction:column; gap:5px; flex:1;">
-                    <span>#${index + 1} - ${dia.fecha} <span class="puntos-badge">${dia.puntos} pts</span> ${infoClima}</span> 
+                    <span>#${index + 1} - ${dia.fecha} ${textoUrgencia} <span class="puntos-badge">${dia.puntos} pts</span> ${infoClima}</span> 
                 </div>
                 <button class="btn-armar" data-fecha="${dia.fecha}">Crear Evento</button>
             `;

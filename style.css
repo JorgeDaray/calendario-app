@@ -378,3 +378,21 @@ body.dark-mode {
 .dark-mode .fc a[data-navlink] {
     color: #4dd0e1; /* Color azul terminal para los enlaces de los días */
 }
+
+/* --- ETIQUETA DEL CLIMA DENTRO DEL CALENDARIO --- */
+.clima-celda {
+    font-size: 0.8em;
+    text-align: center;
+    color: #0c8599;
+    font-weight: bold;
+    background: #e0f7fa;
+    border-radius: 4px;
+    padding: 2px 5px;
+    margin-left: 2px;
+    display: inline-block;
+}
+
+.dark-mode .clima-celda {
+    background-color: #0e4b53;
+    color: #4dd0e1;
+}
